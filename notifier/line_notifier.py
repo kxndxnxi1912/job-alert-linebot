@@ -91,6 +91,11 @@ class LineNotifier:
         bubble = {
             "type": "bubble",
             "size": "mega",
+            "action": {
+                "type": "uri",
+                "label": "open_job",
+                "uri": url if url.startswith("http") else "https://fastwork.co"
+            },
             "header": {
                 "type": "box",
                 "layout": "vertical",
@@ -149,7 +154,7 @@ class LineNotifier:
                         "color": header_color,
                         "action": {
                             "type": "uri",
-                            "label": "🔗 เปิดดูประกาศงาน",
+                            "label": "🚀 ไปที่หน้าประกาศงานนี้",
                             "uri": url if url.startswith("http") else "https://fastwork.co"
                         }
                     }
@@ -224,7 +229,7 @@ class LineNotifier:
             f"{budget_line}"
             f"🏷️ ตรงกับคีย์เวิร์ด: {kws}\n\n"
             f"📄 รายละเอียดสรุป:\n{summary}\n\n"
-            f"🔗 ลิงก์: {url}"
+            f"🔗 ลิงก์ตรงไปยังประกาศงาน:\n👉 {url}"
         )
 
     def send_job_alert(self, job: dict, matched_keywords: list[str], target_ids: list[str] = None) -> int:

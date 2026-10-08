@@ -130,18 +130,30 @@ class LineBotCommandHandler:
 
         # 9. TEST / ทดสอบ
         if lower_text in ("test", "/test", "ทดสอบ"):
-            sample_job = {
-                "post_id": "test_job_sample",
-                "source": "Fastwork",
-                "group_name": "เว็บและโปรแกรมมิ่ง (ทดสอบ)",
-                "title": "[ทดสอบระบบ] รับสมัครฟรีแลนซ์เขียน Web + AI Chatbot",
-                "content": "นี่คือข้อความทดสอบการแจ้งเตือนงานของระบบ Job Alert Bot เพื่อตรวจสอบความถูกต้องของการเชื่อมต่อ LINE และ Database",
-                "budget": "50,000 บาท",
-                "url": "https://fastwork.co"
-            }
+            sample_job = None
+            try:
+                from scrapers.fastwork_scraper import FastworkScraper
+                fw_scraper = FastworkScraper()
+                live_jobs = fw_scraper.fetch_jobs()
+                if live_jobs:
+                    sample_job = live_jobs[0]
+                    sample_job["title"] = f"🧪 [ทดสอบงานจริง] {sample_job['title']}"
+            except Exception as e:
+                logger.warning(f"[LineHandler] Error getting live job for test: {e}")
+
+            if not sample_job:
+                sample_job = {
+                    "post_id": "test_job_sample",
+                    "source": "Fastwork",
+                    "group_name": "ไอทีและโซลูชั่น (งานจริง)",
+                    "title": "🧪 [ทดสอบงานจริง] หาฟรีแลนซ์เขียนโปรแกรมและระบบเว็บ",
+                    "content": "นี่คือข้อความทดสอบการแจ้งเตือนงานของระบบ Job Alert Bot สามารถกดปุ่มด้านล่างเพื่อเปิดไปยังหน้าประกาศงานจริงบน Fastwork ได้ทันที",
+                    "budget": "ตามตกลง / เสนอราคา",
+                    "url": "https://jobboard.fastwork.co/jobs/e54fa348-7eb5-4d15-ac1f-d1668263c4bd"
+                }
             # Send sample flex/text
             self.notifier.send_job_alert(sample_job, ["web", "ai", "ทดสอบ"], target_ids=[source_id])
-            return "🧪 ส่งตัวอย่างแจ้งเตือนงานเรียบร้อยแล้วครับ!"
+            return "🧪 ส่งตัวอย่างแจ้งเตือนงานพร้อมลิงก์ตรงไปยังหน้างานเรียบร้อยแล้วครับ! สามารถกดที่การ์ดหรือปุ่มเพื่อเปิดดูงานได้ทันที"
 
         # Default fallback: If in 1-on-1 chat, suggest help. If in group, ignore non-commands to reduce noise.
         if source_type == "user":
