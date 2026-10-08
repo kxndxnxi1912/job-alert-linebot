@@ -26,7 +26,7 @@ class LineNotifier:
     """Manages sending notifications via LINE Messaging API."""
 
     def __init__(self):
-        self.access_token = Config.LINE_CHANNEL_ACCESS_TOKEN
+        self.access_token = (Config.LINE_CHANNEL_ACCESS_TOKEN or "").strip()
         self.messaging_api = None
 
         # If access token is empty, auto-issue via OAuth using channel_id and channel_secret

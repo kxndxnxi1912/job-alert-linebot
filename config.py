@@ -6,17 +6,17 @@ load_dotenv()
 
 class Config:
     # LINE Bot Settings
-    LINE_CHANNEL_ID = os.getenv("LINE_CHANNEL_ID", "2011930834")
-    LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "1748b15f0db0318a6f220951fec1e7c6")
+    LINE_CHANNEL_ID = os.getenv("LINE_CHANNEL_ID", "2011930834").strip()
+    LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "1748b15f0db0318a6f220951fec1e7c6").strip()
     LINE_CHANNEL_ACCESS_TOKEN = os.getenv(
         "LINE_CHANNEL_ACCESS_TOKEN",
         "yMMa+HG4SYjM4cMjASUClFTHLRLuFaF2XUhZJkYXrjFJcHXE5i6eNe7ubB9oszDboSAngKxvzzq+3W8exaDKpG3SP3cyP7cnGFhpMjOArfUb/Y7x/Ve4Pk6Vs35dKUnxiZcoPbS7OwQlL28uKPQCbo9PbdgDzCFqoOLOYbqAITQ="
-    )
-    DEFAULT_LINE_USER_ID = os.getenv("DEFAULT_LINE_USER_ID", "")  # Optional fallback user ID
+    ).strip()
+    DEFAULT_LINE_USER_ID = os.getenv("DEFAULT_LINE_USER_ID", "").strip()  # Optional fallback user ID
 
     # Database Settings
     # Railway provides DATABASE_URL. If missing, fallback to local SQLite for development.
-    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///jobs.db")
+    DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///jobs.db").strip()
     
     # SQLAlchemy requires "postgresql+psycopg2://" when using psycopg2 driver
     if DATABASE_URL:
