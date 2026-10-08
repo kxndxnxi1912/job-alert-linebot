@@ -31,11 +31,32 @@ class Config:
     FASTWORK_ENABLED = os.getenv("FASTWORK_ENABLED", "true").lower() in ("true", "1", "yes")
     FACEBOOK_ENABLED = os.getenv("FACEBOOK_ENABLED", "true").lower() in ("true", "1", "yes")
 
+    # Facebook Master Preset of major Thai developer & freelance groups
+    DEFAULT_FB_GROUPS = [
+        "thaiprogrammer",              # สมาคมโปรแกรมเมอร์ไทย
+        "webdeveloperthailand",        # Web Developer Thailand
+        "reactthailand",               # React Developer Thailand
+        "flutterthailand",             # Flutter & Mobile Developer Thailand
+        "pythonthailand",              # Python Developer Thailand
+        "datasciencethailand",         # Data Science & AI Thailand
+        "wordpressdeveloperthai",      # WordPress Developer Thailand
+        "itjobthailand",               # งาน IT & Freelance Thailand
+        "frontenddeveloperthailand",   # Frontend Developer Thailand
+        "nodethailand",                # Node.js Thailand
+        "vuejsthailand",               # Vue.js Thailand
+        "golangthailand",              # Golang Thailand
+        "programmersfreelance",        # ฟรีแลนซ์โปรแกรมเมอร์
+        "androiddevthailand",          # Android Developer Thailand
+        "iosdevthailand"               # iOS Developer Thailand
+    ]
+
     # Facebook Settings
-    # Comma-separated Facebook group IDs or URLs (e.g. "123456789,987654321")
-    FB_GROUP_IDS = [g.strip() for g in os.getenv("FB_GROUP_IDS", "").split(",") if g.strip()]
+    # Comma-separated Facebook group IDs or slugs (uses DEFAULT_FB_GROUPS if unset)
+    _raw_fb_groups = os.getenv("FB_GROUP_IDS", "").strip()
+    FB_GROUP_IDS = [g.strip() for g in _raw_fb_groups.split(",") if g.strip()] if _raw_fb_groups else DEFAULT_FB_GROUPS
+
     # Optional Facebook session cookie (e.g. "c_user=...; xs=...")
-    FB_COOKIE = os.getenv("FB_COOKIE", "")
+    FB_COOKIE = os.getenv("FB_COOKIE", "").strip()
     # Optional RSSBridge / RSS feed URLs for Facebook groups
     FB_RSS_URLS = [u.strip() for u in os.getenv("FB_RSS_URLS", "").split(",") if u.strip()]
     # Enable simulation demo data when no FB credentials exist

@@ -47,6 +47,7 @@ class FacebookScraper:
                 try:
                     group_jobs = self._fetch_from_mbasic(group_id)
                     jobs.extend(group_jobs)
+                    time.sleep(0.4)  # Small pause to avoid burst rate-limiting
                 except Exception as e:
                     logger.error(f"[Facebook mbasic] Error scraping group {group_id}: {e}")
 
@@ -149,7 +150,7 @@ class FacebookScraper:
     def _fetch_from_mbasic(self, group_id: str) -> list[dict]:
         """Scrape Facebook group using mbasic endpoint and session cookie."""
         clean_id = group_id.strip("/").split("/")[-1]
-        url = f"https://mbasic.facebook.com/groups/{clean_id}"
+        url = f"https://mbasic.facebook.com/groups/{clean_id}?sorting_setting=CHRONOLOGICAL"
         
         headers = dict(self.HEADERS)
         headers["Cookie"] = self.cookie
@@ -157,6 +158,10 @@ class FacebookScraper:
         resp = requests.get(url, headers=headers, timeout=12)
         if resp.status_code != 200:
             logger.warning(f"[Facebook mbasic] Status {resp.status_code} for {url}")
+            return []
+
+        if "login.php" in resp.url or "login" in resp.url:
+            logger.warning(f"[Facebook mbasic] Cookie expired or group requires login: {clean_id}")
             return []
 
         html = resp.text

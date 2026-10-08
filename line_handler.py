@@ -53,10 +53,25 @@ class LineBotCommandHandler:
                 "🔹 เพิ่มคีย์เวิร์ด: พิมพ์ 'เพิ่ม <คำ>' เช่น 'เพิ่ม react'\n"
                 "🔹 ลบคีย์เวิร์ด: พิมพ์ 'ลบ <คำ>' เช่น 'ลบ bot'\n"
                 "🔹 รีเซ็ตคีย์เวิร์ด: พิมพ์ 'รีเซ็ต'\n"
+                "🔹 ดูกลุ่ม Facebook: พิมพ์ 'กลุ่ม' หรือ 'groups'\n"
                 "🔹 รับการแจ้งเตือน: พิมพ์ 'ติดตาม' หรือ 'subscribe'\n"
                 "🔹 หยุดการแจ้งเตือน: พิมพ์ 'ยกเลิก' หรือ 'unsubscribe'\n"
                 "🔹 ดูสถานะระบบ: พิมพ์ 'สถานะ' หรือ 'status'\n"
                 "🔹 ทดสอบแจ้งเตือน: พิมพ์ 'ทดสอบ' หรือ 'test'"
+            )
+
+        # GROUPS / กลุ่ม
+        if lower_text in ("กลุ่ม", "group", "groups", "/groups", "รายชื่อกลุ่ม"):
+            from config import Config
+            groups = Config.FB_GROUP_IDS
+            has_cookie = bool(Config.FB_COOKIE)
+            cookie_status = "🟢 เชื่อมต่อ Cookie แล้ว (ดึงโพสต์จริง)" if has_cookie else "⚪ ยังไม่ได้ใส่ Cookie (ใช้โหมดจำลอง/พรีวิว)"
+            group_list = "\n".join([f"• https://facebook.com/groups/{g}" for g in groups[:12]])
+            return (
+                f"👥 กลุ่ม Facebook สาย Dev/Freelance ที่ติดตาม ({len(groups)} กลุ่ม):\n"
+                f"สถานะ: {cookie_status}\n\n"
+                f"{group_list}\n\n"
+                f"💡 บอทจะคอยสแกนทุกกลุ่มเพื่อตรวจจับโพสต์ที่ตรงกับคีย์เวิร์ดของคุณ"
             )
 
         # 2. KEYWORDS / คีย์เวิร์ด
