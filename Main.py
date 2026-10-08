@@ -117,7 +117,7 @@ if webhook_handler:
                 "👉 พิมพ์ 'คีย์เวิร์ด' เพื่อดูรายการคำค้นหาทั้งหมด\n"
                 "👉 พิมพ์ 'วิธีใช้' เพื่อดูคำสั่งทั้งหมดครับ"
             )
-            command_handler.reply(event.reply_token, welcome_msg)
+            command_handler.reply(event.reply_token, welcome_msg, source_id=source_id)
             # Auto add subscriber
             if source_id:
                 database.add_subscriber(source_id, "user")
@@ -144,14 +144,6 @@ if webhook_handler:
                 source_type = "user"
 
             logger.info(f"[LINE Message] From {source_type} ({source_id}): {text}")
-            RECENT_EVENTS.append({
-                "time": str(datetime.utcnow()) if 'datetime' in globals() else "now",
-                "source_id": source_id,
-                "source_type": source_type,
-                "text": text
-            })
-            if len(RECENT_EVENTS) > 30:
-                RECENT_EVENTS.pop(0)
 
             # Process command
             reply_text = command_handler.handle_text_message(
@@ -162,8 +154,19 @@ if webhook_handler:
             )
 
             # Send reply if there is text to send
+            reply_status = "no_reply_needed"
             if reply_text:
-                command_handler.reply(reply_token, reply_text)
+                reply_status = command_handler.reply(reply_token, reply_text, source_id=source_id)
+
+            RECENT_EVENTS.append({
+                "time": str(datetime.utcnow()) if 'datetime' in globals() else "now",
+                "source_id": source_id,
+                "source_type": source_type,
+                "text": text,
+                "reply_status": reply_status
+            })
+            if len(RECENT_EVENTS) > 30:
+                RECENT_EVENTS.pop(0)
 
         except Exception as e:
             logger.error(f"[LINE Event Error] {e}")

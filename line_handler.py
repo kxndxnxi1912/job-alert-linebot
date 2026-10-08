@@ -148,16 +148,37 @@ class LineBotCommandHandler:
             return "พิมพ์ 'วิธีใช้' เพื่อดูคำสั่งทั้งหมด หรือพิมพ์ 'คีย์เวิร์ด' เพื่อดูรายการคำค้นหาครับ"
         return None
 
-    def reply(self, reply_token: str, reply_text: str):
-        """Send a reply to the user using MessagingApi."""
-        if not self.notifier.messaging_api or not reply_token or not reply_text:
-            return
+    def reply(self, reply_token: str, reply_text: str, source_id: str = None) -> str:
+        """Send a reply to the user using MessagingApi with automatic PushMessage fallback."""
+        if not self.notifier.messaging_api or not reply_text:
+            return "no_api_or_text"
         
-        try:
-            req = ReplyMessageRequest(
-                reply_token=reply_token,
-                messages=[TextMessage(text=reply_text)]
-            )
-            self.notifier.messaging_api.reply_message(req)
-        except Exception as e:
-            logger.error(f"[LineHandler] Error replying message: {e}")
+        # 1. Try reply_message with reply_token if valid
+        if reply_token and reply_token != "00000000000000000000000000000000":
+            try:
+                req = ReplyMessageRequest(
+                    reply_token=reply_token,
+                    messages=[TextMessage(text=reply_text)]
+                )
+                self.notifier.messaging_api.reply_message(req)
+                logger.info("[LineHandler] Replied successfully via ReplyMessage.")
+                return "replied"
+            except Exception as e:
+                logger.warning(f"[LineHandler] ReplyMessage failed ({e}). Attempting PushMessage fallback...")
+
+        # 2. Fallback to PushMessage using source_id
+        if source_id:
+            try:
+                from linebot.v3.messaging import PushMessageRequest
+                push_req = PushMessageRequest(
+                    to=source_id,
+                    messages=[TextMessage(text=reply_text)]
+                )
+                self.notifier.messaging_api.push_message(push_req)
+                logger.info(f"[LineHandler] Sent reply via PushMessage fallback to {source_id}.")
+                return "pushed"
+            except Exception as pe:
+                logger.error(f"[LineHandler] PushMessage fallback failed for {source_id}: {pe}")
+                return f"push_failed: {pe}"
+
+        return "failed_no_target"
