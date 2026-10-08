@@ -66,9 +66,11 @@ def health_check():
     return jsonify({
         "status": "online",
         "service": "Job Alert Bot (Fastwork & Facebook)",
-        "version": "1.0.0",
+        "version": "1.0.2",
+        "build_version": "groups-master-preset-v2",
         "worker_running": worker.is_running,
         "poll_interval_seconds": Config.POLL_INTERVAL_SECONDS,
+        "facebook_groups_count": len(Config.FB_GROUP_IDS),
         "line_configured": notifier.is_configured(),
         "stats": stats
     }), 200
@@ -216,7 +218,8 @@ if webhook_handler:
                 "source_id": source_id,
                 "source_type": source_type,
                 "text": text,
-                "reply_status": reply_status
+                "reply_status": reply_status,
+                "reply_preview": (reply_text[:120] if reply_text else None)
             })
             if len(RECENT_EVENTS) > 30:
                 RECENT_EVENTS.pop(0)
