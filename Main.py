@@ -2,6 +2,7 @@ import os
 import sys
 import logging
 from flask import Flask, request, abort, jsonify
+from datetime import datetime
 
 # Set stdout/stderr encoding to UTF-8
 if sys.stdout.encoding != 'utf-8':
@@ -97,7 +98,32 @@ def callback():
 
 
 # Register LINE Event Handlers if SDK available
+RECENT_EVENTS = []
+
 if webhook_handler:
+    from linebot.v3.webhooks import FollowEvent
+
+    @webhook_handler.add(FollowEvent)
+    def handle_follow(event):
+        try:
+            source_id = getattr(event.source, "user_id", None)
+            logger.info(f"[LINE Follow] User followed: {source_id}")
+            welcome_msg = (
+                "👋 สวัสดีครับ! ยินดีต้อนรับสู่ Job Alert Bot 🤖\n"
+                "ระบบแจ้งเตือนงานด้าน Programming, Web, AI / Machine Learning และ Software\n"
+                "จาก Fastwork และ Facebook Groups แบบ Real-time\n\n"
+                "📌 เริ่มต้นใช้งาน:\n"
+                "👉 พิมพ์ 'ติดตาม' เพื่อเปิดรับการแจ้งเตือนงานใหม่\n"
+                "👉 พิมพ์ 'คีย์เวิร์ด' เพื่อดูรายการคำค้นหาทั้งหมด\n"
+                "👉 พิมพ์ 'วิธีใช้' เพื่อดูคำสั่งทั้งหมดครับ"
+            )
+            command_handler.reply(event.reply_token, welcome_msg)
+            # Auto add subscriber
+            if source_id:
+                database.add_subscriber(source_id, "user")
+        except Exception as e:
+            logger.error(f"[LINE Follow Error] {e}")
+
     @webhook_handler.add(MessageEvent, message=TextMessageContent)
     def handle_text_message(event):
         try:
@@ -118,6 +144,14 @@ if webhook_handler:
                 source_type = "user"
 
             logger.info(f"[LINE Message] From {source_type} ({source_id}): {text}")
+            RECENT_EVENTS.append({
+                "time": str(datetime.utcnow()) if 'datetime' in globals() else "now",
+                "source_id": source_id,
+                "source_type": source_type,
+                "text": text
+            })
+            if len(RECENT_EVENTS) > 30:
+                RECENT_EVENTS.pop(0)
 
             # Process command
             reply_text = command_handler.handle_text_message(
@@ -133,6 +167,20 @@ if webhook_handler:
 
         except Exception as e:
             logger.error(f"[LINE Event Error] {e}")
+
+
+@app.route("/api/debug", methods=["GET"])
+def get_debug_info():
+    """Debug endpoint to inspect webhook state and events."""
+    return jsonify({
+        "line_channel_id": Config.LINE_CHANNEL_ID,
+        "line_secret_configured": bool(Config.LINE_CHANNEL_SECRET),
+        "line_token_configured": bool(Config.LINE_CHANNEL_ACCESS_TOKEN),
+        "webhook_handler_active": webhook_handler is not None,
+        "recent_events": RECENT_EVENTS,
+        "subscribers": database.get_subscribers(),
+        "stats": database.get_stats()
+    }), 200
 
 
 @app.route("/api/check-now", methods=["POST"])
