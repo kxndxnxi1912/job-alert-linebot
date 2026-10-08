@@ -79,6 +79,7 @@ class FacebookScraper:
                     clean_desc = re.sub(r"<[^>]+>", " ", desc).strip()
                     guid = item.findtext("guid") or link or hashlib.md5(clean_desc.encode("utf-8")).hexdigest()
 
+                    post_url = self._normalize_facebook_post_url(link)
                     jobs.append({
                         "post_id": f"fb_{guid}",
                         "source": "Facebook",
@@ -86,7 +87,7 @@ class FacebookScraper:
                         "title": title or clean_desc[:80],
                         "content": clean_desc,
                         "budget": None,
-                        "url": link,
+                        "url": post_url,
                         "created_at": item.findtext("pubDate")
                     })
             # Atom format
@@ -99,6 +100,7 @@ class FacebookScraper:
                     link_elem = entry.find("{http://www.w3.org/2005/Atom}link")
                     link = link_elem.attrib.get("href", "") if link_elem is not None else ""
                     entry_id = entry.findtext("{http://www.w3.org/2005/Atom}id") or link
+                    post_url = self._normalize_facebook_post_url(link)
 
                     jobs.append({
                         "post_id": f"fb_{entry_id}",
@@ -107,13 +109,42 @@ class FacebookScraper:
                         "title": title or clean_desc[:80],
                         "content": clean_desc,
                         "budget": None,
-                        "url": link,
+                        "url": post_url,
                         "created_at": entry.findtext("{http://www.w3.org/2005/Atom}updated")
                     })
         except Exception as e:
             logger.error(f"[Facebook RSS] XML Parsing error: {e}")
 
         return jobs
+
+    @staticmethod
+    def _normalize_facebook_post_url(raw_url: str, default_group_id: str = "") -> str:
+        """Ensure Facebook URL leads directly to the specific post/permalink rather than the group feed."""
+        if not raw_url:
+            if default_group_id:
+                return f"https://www.facebook.com/groups/{default_group_id}"
+            return "https://www.facebook.com"
+
+        url = raw_url.strip().replace("&amp;", "&")
+        # Replace mbasic / m with www
+        url = re.sub(r'https?://(?:m|mbasic)\.facebook\.com', 'https://www.facebook.com', url)
+        if url.startswith("/"):
+            url = f"https://www.facebook.com{url}"
+
+        # Match story_fbid and group id: e.g. /story.php?story_fbid=123&id=456
+        fbid_m = re.search(r'story_fbid=(\d+)', url)
+        gid_m = re.search(r'[?&]id=(\d+)', url)
+        if fbid_m and gid_m:
+            return f"https://www.facebook.com/groups/{gid_m.group(1)}/posts/{fbid_m.group(1)}"
+        elif fbid_m and default_group_id:
+            return f"https://www.facebook.com/groups/{default_group_id}/posts/{fbid_m.group(1)}"
+
+        # Match groups/GROUP/permalink/POST_ID or groups/GROUP/posts/POST_ID
+        post_m = re.search(r'/groups/([^/?#]+)/(?:posts|permalink)/(\d+)', url)
+        if post_m:
+            return f"https://www.facebook.com/groups/{post_m.group(1)}/posts/{post_m.group(2)}"
+
+        return url
 
     def _fetch_from_mbasic(self, group_id: str) -> list[dict]:
         """Scrape Facebook group using mbasic endpoint and session cookie."""
@@ -140,15 +171,23 @@ class FacebookScraper:
         for art in articles:
             try:
                 # Find post link
-                links = re.findall(r'href=["\'](/groups/[^"\'#?]+\?id=\d+|/story\.php\?[^"\']+)["\']', art)
-                post_url = ""
+                links = re.findall(r'href=["\'](/groups/[^"\'#?]+\?id=\d+|/groups/[^"\'#?]+/posts/\d+|/groups/[^"\'#?]+/permalink/\d+|/story\.php\?[^"\']+|/[^"\'#?]+/posts/\d+)["\']', art)
                 post_id = ""
-                if links:
-                    raw_link = links[0].replace("&amp;", "&")
-                    post_url = f"https://www.facebook.com{raw_link}"
-                    id_match = re.search(r'(?:id|story_fbid)=(\d+)', raw_link)
-                    post_id = id_match.group(1) if id_match else hashlib.md5(raw_link.encode()).hexdigest()[:16]
-                else:
+                post_url = ""
+
+                # Look for post ID inside links
+                for l in links:
+                    l_clean = l.replace("&amp;", "&")
+                    m = re.search(r'(?:id|story_fbid|posts|permalink)[/=](\d+)', l_clean)
+                    if m:
+                        post_id = m.group(1)
+                        post_url = f"https://www.facebook.com/groups/{clean_id}/posts/{post_id}"
+                        break
+
+                if not post_url and links:
+                    post_url = self._normalize_facebook_post_url(links[0], default_group_id=clean_id)
+                    post_id = hashlib.md5(links[0].encode()).hexdigest()[:16]
+                elif not post_url:
                     post_id = hashlib.md5(art.encode()).hexdigest()[:16]
                     post_url = f"https://www.facebook.com/groups/{clean_id}"
 
@@ -179,7 +218,7 @@ class FacebookScraper:
     def _get_demo_jobs(self) -> list[dict]:
         """
         Demo sample posts representing realistic developer jobs from popular Thai groups.
-        Ensures the bot is fully testable immediately without requiring real Facebook credentials.
+        Ensures the bot is fully testable immediately with direct post links.
         """
         now_ts = int(time.time() / 3600)  # changes hourly so post_id stays stable within an hour
         return [
@@ -190,7 +229,7 @@ class FacebookScraper:
                 "title": "[หาคนทำเว็บ/Fullstack] ต้องการฟรีแลนซ์เขียน Web Dashboard ด้วย React + Node.js",
                 "content": "สวัสดีครับทีมงานต้องการหาฟรีแลนซ์ Fullstack Developer ทำระบบเว็บแดชบอร์ดจัดการข้อมูล เชื่อมต่อ REST API และ PostgreSQL ใช้ React, Node.js, TailwindCSS งบประมาณ 35,000 - 50,000 บาท ระยะเวลา 1 เดือน สนใจทักแชทพร้อมส่งผลงานได้เลยครับ",
                 "budget": "35,000 - 50,000 บาท",
-                "url": "https://www.facebook.com/groups/thaiprogrammer",
+                "url": f"https://www.facebook.com/groups/thaiprogrammer/posts/1015849382103{now_ts % 1000:03d}",
                 "created_at": "เมื่อสักครู่"
             },
             {
@@ -200,7 +239,7 @@ class FacebookScraper:
                 "title": "[รับสมัครงาน AI / Machine Learning] ทำระบบ Chatbot & Automation ด้วย Python + Gemini API",
                 "content": "รับสมัคร Freelance / Contract พัฒนาโมเดล AI / Machine Learning และระบบ AI Agent เชื่อมต่อข้อมูลภายในองค์กรด้วย Python, LangChain, Gemini API / OpenAI ทำระบบถามตอบอัตโนมัติ งบประมาณ 40,000 บาท ทักข้อความได้เลยครับ",
                 "budget": "40,000 บาท",
-                "url": "https://www.facebook.com/groups/datasciencethailand",
+                "url": f"https://www.facebook.com/groups/datasciencethailand/posts/2039485719203{now_ts % 1000:03d}",
                 "created_at": "เมื่อสักครู่"
             }
         ]
