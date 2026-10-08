@@ -101,7 +101,7 @@ def callback():
 RECENT_EVENTS = []
 
 if webhook_handler:
-    from linebot.v3.webhooks import FollowEvent
+    from linebot.v3.webhooks import FollowEvent, UnfollowEvent, JoinEvent, StickerMessageContent
 
     @webhook_handler.add(FollowEvent)
     def handle_follow(event):
@@ -113,16 +113,65 @@ if webhook_handler:
                 "ระบบแจ้งเตือนงานด้าน Programming, Web, AI / Machine Learning และ Software\n"
                 "จาก Fastwork และ Facebook Groups แบบ Real-time\n\n"
                 "📌 เริ่มต้นใช้งาน:\n"
-                "👉 พิมพ์ 'ติดตาม' เพื่อเปิดรับการแจ้งเตือนงานใหม่\n"
+                "👉 ระบบได้เปิดรับการแจ้งเตือนงานให้คุณอัตโนมัติแล้วครับ!\n"
                 "👉 พิมพ์ 'คีย์เวิร์ด' เพื่อดูรายการคำค้นหาทั้งหมด\n"
                 "👉 พิมพ์ 'วิธีใช้' เพื่อดูคำสั่งทั้งหมดครับ"
             )
-            command_handler.reply(event.reply_token, welcome_msg, source_id=source_id)
             # Auto add subscriber
             if source_id:
                 database.add_subscriber(source_id, "user")
+            command_handler.reply(event.reply_token, welcome_msg, source_id=source_id)
         except Exception as e:
             logger.error(f"[LINE Follow Error] {e}")
+
+    @webhook_handler.add(UnfollowEvent)
+    def handle_unfollow(event):
+        try:
+            source_id = getattr(event.source, "user_id", None)
+            if source_id:
+                logger.info(f"[LINE Unfollow] User blocked/unfollowed: {source_id}")
+                database.remove_subscriber(source_id)
+        except Exception as e:
+            logger.error(f"[LINE Unfollow Error] {e}")
+
+    @webhook_handler.add(JoinEvent)
+    def handle_join(event):
+        try:
+            source_id = None
+            source_type = "group"
+            if hasattr(event.source, "group_id") and event.source.group_id:
+                source_id = event.source.group_id
+                source_type = "group"
+            elif hasattr(event.source, "room_id") and event.source.room_id:
+                source_id = event.source.room_id
+                source_type = "room"
+
+            logger.info(f"[LINE Join] Bot added to {source_type}: {source_id}")
+            if source_id:
+                database.add_subscriber(source_id, source_type)
+                welcome_group_msg = (
+                    "👋 สวัสดีครับทุกคน! 🤖 Job Alert Bot เข้าร่วมเรียบร้อยแล้ว\n"
+                    "ระบบได้เปิดรับการแจ้งเตือนงานให้กลุ่มนี้อัตโนมัติเรียบร้อยครับ\n"
+                    "เมื่องานเขียนโปรแกรม, เว็บ, AI/ML เข้ามาใหม่ จะส่งการ์ดแจ้งเตือนให้ทันที!\n"
+                    "💡 สมาชิกสามารถพิมพ์ 'คีย์เวิร์ด' เพื่อดูคำค้นหา หรือ 'ทดสอบ' เพื่อดูตัวอย่างงานได้ครับ"
+                )
+                command_handler.reply(event.reply_token, welcome_group_msg, source_id=source_id)
+        except Exception as e:
+            logger.error(f"[LINE Join Error] {e}")
+
+    @webhook_handler.add(MessageEvent, message=StickerMessageContent)
+    def handle_sticker_message(event):
+        try:
+            source_id = getattr(event.source, "user_id", None)
+            if source_id:
+                database.add_subscriber(source_id, "user")
+                command_handler.reply(
+                    event.reply_token,
+                    "👋 ได้รับสติกเกอร์แล้วครับ! ระบบได้บันทึกเปิดรับการแจ้งเตือนงานให้คุณเรียบร้อยแล้ว 🤖 (พิมพ์ 'วิธีใช้' เพื่อดูคำสั่งทั้งหมดครับ)",
+                    source_id=source_id
+                )
+        except Exception as e:
+            logger.error(f"[LINE Sticker Error] {e}")
 
     @webhook_handler.add(MessageEvent, message=TextMessageContent)
     def handle_text_message(event):
@@ -144,6 +193,10 @@ if webhook_handler:
                 source_type = "user"
 
             logger.info(f"[LINE Message] From {source_type} ({source_id}): {text}")
+
+            # Auto-register this user/group into database as subscriber on any incoming interaction
+            if source_id:
+                database.add_subscriber(source_id, source_type)
 
             # Process command
             reply_text = command_handler.handle_text_message(

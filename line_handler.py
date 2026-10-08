@@ -151,9 +151,14 @@ class LineBotCommandHandler:
                     "budget": "ตามตกลง / เสนอราคา",
                     "url": "https://jobboard.fastwork.co/jobs/e54fa348-7eb5-4d15-ac1f-d1668263c4bd"
                 }
-            # Send sample flex/text
-            self.notifier.send_job_alert(sample_job, ["web", "ai", "ทดสอบ"], target_ids=[source_id])
-            return "🧪 ส่งตัวอย่างแจ้งเตือนงานพร้อมลิงก์ตรงไปยังหน้างานเรียบร้อยแล้วครับ! สามารถกดที่การ์ดหรือปุ่มเพื่อเปิดดูงานได้ทันที"
+            # Send sample flex/text to all active subscribers
+            all_subs = database.get_subscribers()
+            target_list = all_subs if all_subs else [source_id]
+            if source_id not in target_list:
+                target_list.append(source_id)
+
+            sent_count = self.notifier.send_job_alert(sample_job, ["web", "ai", "ทดสอบ"], target_ids=target_list)
+            return f"🧪 ส่งตัวอย่างแจ้งเตือนงานไปยังผู้ติดตามทุกคนเรียบร้อยแล้วครับ! (ส่งให้ {sent_count} คน ทุกคนที่แอดไลน์จะได้รับการ์ดพร้อมกัน)"
 
         # Default fallback: If in 1-on-1 chat, suggest help. If in group, ignore non-commands to reduce noise.
         if source_type == "user":
