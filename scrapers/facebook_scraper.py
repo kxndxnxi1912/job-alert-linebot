@@ -1,0 +1,206 @@
+import re
+import time
+import hashlib
+import logging
+import requests
+import xml.etree.ElementTree as ET
+from config import Config
+
+logger = logging.getLogger(__name__)
+
+class FacebookScraper:
+    """
+    Facebook Group Scraper supporting multiple strategies:
+    1. RSS / Atom feeds (e.g. via RSS-Bridge or Feed43)
+    2. Mobile Web scraping (mbasic.facebook.com) using session cookies
+    3. Demo simulation fallback for testing keyword alerts
+    """
+
+    HEADERS = {
+        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36",
+        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+        "Accept-Language": "th,en-US;q=0.9,en;q=0.8",
+    }
+
+    def __init__(self):
+        self.cookie = Config.FB_COOKIE
+        self.group_ids = Config.FB_GROUP_IDS
+        self.rss_urls = Config.FB_RSS_URLS
+        self.demo_enabled = Config.FB_DEMO_FALLBACK
+
+    def fetch_jobs(self) -> list[dict]:
+        """Fetch posts from all configured Facebook sources."""
+        jobs = []
+
+        # 1. Fetch from RSS URLs if available
+        if self.rss_urls:
+            for url in self.rss_urls:
+                try:
+                    rss_jobs = self._fetch_from_rss(url)
+                    jobs.extend(rss_jobs)
+                except Exception as e:
+                    logger.error(f"[Facebook RSS] Error fetching {url}: {e}")
+
+        # 2. Fetch using FB Cookies if provided
+        if self.cookie and self.group_ids:
+            for group_id in self.group_ids:
+                try:
+                    group_jobs = self._fetch_from_mbasic(group_id)
+                    jobs.extend(group_jobs)
+                except Exception as e:
+                    logger.error(f"[Facebook mbasic] Error scraping group {group_id}: {e}")
+
+        # 3. Fallback demo data if no credentials configured yet
+        if not jobs and not self.cookie and not self.rss_urls and self.demo_enabled:
+            jobs.extend(self._get_demo_jobs())
+
+        logger.info(f"[Facebook] Total {len(jobs)} posts gathered.")
+        return jobs
+
+    def _fetch_from_rss(self, rss_url: str) -> list[dict]:
+        """Parse Facebook Group RSS / Atom feed."""
+        jobs = []
+        resp = requests.get(rss_url, headers=self.HEADERS, timeout=12)
+        if resp.status_code != 200:
+            logger.warning(f"[Facebook RSS] Status {resp.status_code} for {rss_url}")
+            return []
+
+        try:
+            root = ET.fromstring(resp.content)
+            # RSS 2.0 format
+            channel = root.find("channel")
+            if channel is not None:
+                group_title = (channel.findtext("title") or "Facebook Group").replace("Facebook - ", "")
+                for item in channel.findall("item"):
+                    title = item.findtext("title") or ""
+                    link = item.findtext("link") or ""
+                    desc = item.findtext("description") or ""
+                    # Strip html tags from description
+                    clean_desc = re.sub(r"<[^>]+>", " ", desc).strip()
+                    guid = item.findtext("guid") or link or hashlib.md5(clean_desc.encode("utf-8")).hexdigest()
+
+                    jobs.append({
+                        "post_id": f"fb_{guid}",
+                        "source": "Facebook",
+                        "group_name": group_title,
+                        "title": title or clean_desc[:80],
+                        "content": clean_desc,
+                        "budget": None,
+                        "url": link,
+                        "created_at": item.findtext("pubDate")
+                    })
+            # Atom format
+            elif "feed" in root.tag.lower():
+                feed_title = root.findtext("{http://www.w3.org/2005/Atom}title") or "Facebook Group"
+                for entry in root.findall("{http://www.w3.org/2005/Atom}entry"):
+                    title = entry.findtext("{http://www.w3.org/2005/Atom}title") or ""
+                    summary = entry.findtext("{http://www.w3.org/2005/Atom}summary") or entry.findtext("{http://www.w3.org/2005/Atom}content") or ""
+                    clean_desc = re.sub(r"<[^>]+>", " ", summary).strip()
+                    link_elem = entry.find("{http://www.w3.org/2005/Atom}link")
+                    link = link_elem.attrib.get("href", "") if link_elem is not None else ""
+                    entry_id = entry.findtext("{http://www.w3.org/2005/Atom}id") or link
+
+                    jobs.append({
+                        "post_id": f"fb_{entry_id}",
+                        "source": "Facebook",
+                        "group_name": feed_title,
+                        "title": title or clean_desc[:80],
+                        "content": clean_desc,
+                        "budget": None,
+                        "url": link,
+                        "created_at": entry.findtext("{http://www.w3.org/2005/Atom}updated")
+                    })
+        except Exception as e:
+            logger.error(f"[Facebook RSS] XML Parsing error: {e}")
+
+        return jobs
+
+    def _fetch_from_mbasic(self, group_id: str) -> list[dict]:
+        """Scrape Facebook group using mbasic endpoint and session cookie."""
+        clean_id = group_id.strip("/").split("/")[-1]
+        url = f"https://mbasic.facebook.com/groups/{clean_id}"
+        
+        headers = dict(self.HEADERS)
+        headers["Cookie"] = self.cookie
+
+        resp = requests.get(url, headers=headers, timeout=12)
+        if resp.status_code != 200:
+            logger.warning(f"[Facebook mbasic] Status {resp.status_code} for {url}")
+            return []
+
+        html = resp.text
+        jobs = []
+
+        # Find group title
+        title_match = re.search(r"<title>(.*?)</title>", html, re.IGNORECASE)
+        group_name = title_match.group(1).replace(" | Facebook", "").strip() if title_match else f"Group {clean_id}"
+
+        # Extract articles / posts from mbasic HTML
+        articles = re.findall(r'<article[^>]*>(.*?)</article>', html, re.DOTALL)
+        for art in articles:
+            try:
+                # Find post link
+                links = re.findall(r'href=["\'](/groups/[^"\'#?]+\?id=\d+|/story\.php\?[^"\']+)["\']', art)
+                post_url = ""
+                post_id = ""
+                if links:
+                    raw_link = links[0].replace("&amp;", "&")
+                    post_url = f"https://www.facebook.com{raw_link}"
+                    id_match = re.search(r'(?:id|story_fbid)=(\d+)', raw_link)
+                    post_id = id_match.group(1) if id_match else hashlib.md5(raw_link.encode()).hexdigest()[:16]
+                else:
+                    post_id = hashlib.md5(art.encode()).hexdigest()[:16]
+                    post_url = f"https://www.facebook.com/groups/{clean_id}"
+
+                # Extract text
+                clean_text = re.sub(r'<[^>]+>', ' ', art)
+                clean_text = ' '.join(clean_text.split()).strip()
+
+                if len(clean_text) > 30:
+                    lines = [l.strip() for l in clean_text.split("\n") if l.strip()]
+                    title = lines[0][:100] if lines else clean_text[:100]
+
+                    jobs.append({
+                        "post_id": f"fb_{clean_id}_{post_id}",
+                        "source": "Facebook",
+                        "group_name": group_name,
+                        "title": title,
+                        "content": clean_text,
+                        "budget": None,
+                        "url": post_url,
+                        "created_at": None
+                    })
+            except Exception as e:
+                logger.warning(f"[Facebook mbasic] Error parsing article: {e}")
+                continue
+
+        return jobs
+
+    def _get_demo_jobs(self) -> list[dict]:
+        """
+        Demo sample posts representing realistic developer jobs from popular Thai groups.
+        Ensures the bot is fully testable immediately without requiring real Facebook credentials.
+        """
+        now_ts = int(time.time() / 3600)  # changes hourly so post_id stays stable within an hour
+        return [
+            {
+                "post_id": f"fb_demo_prog_{now_ts}",
+                "source": "Facebook",
+                "group_name": "สมาคมโปรแกรมเมอร์ไทย (Thai Programmer Association)",
+                "title": "[หาคนทำเว็บ/Fullstack] ต้องการฟรีแลนซ์เขียน Web Dashboard ด้วย React + Node.js",
+                "content": "สวัสดีครับทีมงานต้องการหาฟรีแลนซ์ Fullstack Developer ทำระบบเว็บแดชบอร์ดจัดการข้อมูล เชื่อมต่อ REST API และ PostgreSQL ใช้ React, Node.js, TailwindCSS งบประมาณ 35,000 - 50,000 บาท ระยะเวลา 1 เดือน สนใจทักแชทพร้อมส่งผลงานได้เลยครับ",
+                "budget": "35,000 - 50,000 บาท",
+                "url": "https://www.facebook.com/groups/thaiprogrammer",
+                "created_at": "เมื่อสักครู่"
+            },
+            {
+                "post_id": f"fb_demo_ai_{now_ts}",
+                "source": "Facebook",
+                "group_name": "AI & Data Science Thailand",
+                "title": "[รับสมัครงาน AI / Machine Learning] ทำระบบ Chatbot & Automation ด้วย Python + Gemini API",
+                "content": "รับสมัคร Freelance / Contract พัฒนาโมเดล AI / Machine Learning และระบบ AI Agent เชื่อมต่อข้อมูลภายในองค์กรด้วย Python, LangChain, Gemini API / OpenAI ทำระบบถามตอบอัตโนมัติ งบประมาณ 40,000 บาท ทักข้อความได้เลยครับ",
+                "budget": "40,000 บาท",
+                "url": "https://www.facebook.com/groups/datasciencethailand",
+                "created_at": "เมื่อสักครู่"
+            }
+        ]
