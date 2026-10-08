@@ -18,9 +18,13 @@ class Config:
     # Railway provides DATABASE_URL. If missing, fallback to local SQLite for development.
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///jobs.db")
     
-    # SQLAlchemy requires "postgresql://" instead of "postgres://"
-    if DATABASE_URL and DATABASE_URL.startswith("postgres://"):
-        DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql://", 1)
+    # SQLAlchemy requires "postgresql+psycopg2://" when using psycopg2 driver
+    if DATABASE_URL:
+        if DATABASE_URL.startswith("postgres://"):
+            DATABASE_URL = DATABASE_URL.replace("postgres://", "postgresql+psycopg2://", 1)
+        elif DATABASE_URL.startswith("postgresql://") and not DATABASE_URL.startswith("postgresql+"):
+            DATABASE_URL = DATABASE_URL.replace("postgresql://", "postgresql+psycopg2://", 1)
+
 
     # Scraper & Worker Settings
     POLL_INTERVAL_SECONDS = int(os.getenv("POLL_INTERVAL_SECONDS", "180"))  # default: 3 minutes

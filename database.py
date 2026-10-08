@@ -73,17 +73,32 @@ connect_args = {}
 if Config.DATABASE_URL.startswith("sqlite"):
     connect_args = {"check_same_thread": False}
 
-engine = create_engine(
-    Config.DATABASE_URL,
-    connect_args=connect_args,
-    pool_pre_ping=True
-)
+try:
+    engine = create_engine(
+        Config.DATABASE_URL,
+        connect_args=connect_args,
+        pool_pre_ping=True
+    )
+except Exception as e:
+    print(f"[Database] Primary engine creation error: {e}. Falling back to SQLite.")
+    engine = create_engine("sqlite:///jobs.db", connect_args={"check_same_thread": False}, pool_pre_ping=True)
+
 SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
 
 def init_db():
     """Create all tables and seed default keywords if table is empty."""
-    Base.metadata.create_all(bind=engine)
+    global engine, SessionLocal
+    try:
+        Base.metadata.create_all(bind=engine)
+    except Exception as e:
+        print(f"[Database] Error creating tables on primary DB ({Config.DATABASE_URL}): {e}")
+        print("[Database] Falling back to SQLite database...")
+        engine = create_engine("sqlite:///jobs.db", connect_args={"check_same_thread": False}, pool_pre_ping=True)
+        SessionLocal = scoped_session(sessionmaker(autocommit=False, autoflush=False, bind=engine))
+        Base.metadata.create_all(bind=engine)
+
     session = SessionLocal()
+
     try:
         count = session.query(Keyword).count()
         if count == 0:
