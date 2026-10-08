@@ -227,41 +227,41 @@ class FacebookScraper:
             {
                 "post_id": f"fb_demo_prog_{now_ts}",
                 "source": "Facebook",
-                "group_name": "สมาคมโปรแกรมเมอร์ไทย (Thai Programmer Association)",
-                "title": "[หาคนทำเว็บ/Fullstack] ต้องการฟรีแลนซ์เขียน Web Dashboard ด้วย React + Node.js",
-                "content": "สวัสดีครับทีมงานต้องการหาฟรีแลนซ์ Fullstack Developer ทำระบบเว็บแดชบอร์ดจัดการข้อมูล เชื่อมต่อ REST API และ PostgreSQL ใช้ React, Node.js, TailwindCSS งบประมาณ 35,000 - 50,000 บาท สนใจทักแชทพร้อมส่งผลงานได้เลยครับ",
+                "group_name": "สมาคมโปรแกรมเมอร์ไทย",
+                "title": "[ตัวอย่างทดสอบ] รับฟรีแลนซ์เขียน Web Dashboard ด้วย React + Node.js",
+                "content": "ตัวอย่างโพสต์จำลองระบบ: ต้องการหาฟรีแลนซ์ Fullstack Developer ทำระบบเว็บแดชบอร์ดจัดการข้อมูล เชื่อมต่อ REST API และ PostgreSQL ใช้ React, Node.js, TailwindCSS งบประมาณ 35,000 - 50,000 บาท",
                 "budget": "35,000 - 50,000 บาท",
-                "url": f"https://www.facebook.com/groups/thaiprogrammer/posts/1015849382103{now_ts % 1000:03d}",
+                "url": "https://www.facebook.com/groups/thaiprogrammer",
                 "created_at": "เมื่อสักครู่"
             },
             {
                 "post_id": f"fb_demo_ai_{now_ts}",
                 "source": "Facebook",
                 "group_name": "AI & Data Science Thailand",
-                "title": "[รับสมัครงาน AI / Machine Learning] ทำระบบ Chatbot & Automation ด้วย Python + Gemini API",
-                "content": "รับสมัคร Freelance / Contract พัฒนาโมเดล AI / Machine Learning และระบบ AI Agent เชื่อมต่อข้อมูลภายในองค์กรด้วย Python, LangChain, Gemini API / OpenAI ทำระบบถามตอบอัตโนมัติ งบประมาณ 40,000 บาท ทักข้อความได้เลยครับ",
+                "title": "[ตัวอย่างทดสอบ] รับสมัครงาน AI & Chatbot ด้วย Python + Gemini API",
+                "content": "ตัวอย่างโพสต์จำลองระบบ: รับสมัคร Freelance พัฒนาโมเดล AI / Machine Learning และระบบ AI Agent เชื่อมต่อข้อมูลภายในองค์กรด้วย Python, LangChain, Gemini API งบประมาณ 40,000 บาท",
                 "budget": "40,000 บาท",
-                "url": f"https://www.facebook.com/groups/datasciencethailand/posts/2039485719203{now_ts % 1000:03d}",
+                "url": "https://www.facebook.com/groups/datasciencethailand",
                 "created_at": "เมื่อสักครู่"
             },
             {
                 "post_id": f"fb_demo_mobile_{now_ts}",
                 "source": "Facebook",
-                "group_name": "Flutter & Mobile Developer Thailand",
-                "title": "[หาคนทำ Mobile App] พัฒนาแอปพลิเคชันซื้อขายสินค้าด้วย Flutter (iOS & Android)",
-                "content": "ต้องการฟรีแลนซ์ทำแอปพลิเคชัน Mobile รองรับทั้ง iOS และ Android ด้วย Flutter เชื่อมต่อ Firebase และ REST API มีระบบชำระเงิน งบประมาณ 60,000 บาท ระยะเวลาส่งงาน 1 เดือนครึ่ง ทักแชทด่วนครับ",
+                "group_name": "Flutter Developer Thailand",
+                "title": "[ตัวอย่างทดสอบ] พัฒนา Mobile App ซื้อขายสินค้าด้วย Flutter",
+                "content": "ตัวอย่างโพสต์จำลองระบบ: ต้องการฟรีแลนซ์ทำแอปพลิเคชัน Mobile รองรับ iOS & Android ด้วย Flutter เชื่อมต่อ Firebase และ REST API งบประมาณ 60,000 บาท",
                 "budget": "60,000 บาท",
-                "url": f"https://www.facebook.com/groups/flutterthailand/posts/301928471920{now_ts % 1000:03d}",
+                "url": "https://www.facebook.com/groups/flutterthailand",
                 "created_at": "เมื่อสักครู่"
             },
             {
                 "post_id": f"fb_demo_web_{now_ts}",
                 "source": "Facebook",
-                "group_name": "รับทำเว็บไซต์ WordPress & Web Developer Thailand",
-                "title": "[รับทำเว็บ] ต้องการคนทำเว็บไซต์บริษัท Landing Page + ระบบนัดหมายออนไลน์",
-                "content": "ต้องการฟรีแลนซ์ทำเว็บไซต์องค์กร มีฟอร์มลงทะเบียนและระบบปฏิทินนัดหมาย รองรับ Responsive มือถือ ใช้ WordPress หรือ Next.js ก็ได้ งบประมาณ 25,000 บาท สนใจทักแชทพร้อมแนบ Portfolio ครับ",
+                "group_name": "WordPress Developer Thailand",
+                "title": "[ตัวอย่างทดสอบ] ทำเว็บไซต์ Landing Page + ระบบนัดหมายออนไลน์",
+                "content": "ตัวอย่างโพสต์จำลองระบบ: ต้องการฟรีแลนซ์ทำเว็บไซต์องค์กร รองรับมือถือ Responsive ใช้ WordPress หรือ Next.js งบประมาณ 25,000 บาท",
                 "budget": "25,000 บาท",
-                "url": f"https://www.facebook.com/groups/wordpressdeveloperthai/posts/401928371920{now_ts % 1000:03d}",
+                "url": "https://www.facebook.com/groups/wordpressdeveloperthai",
                 "created_at": "เมื่อสักครู่"
             }
         ]
