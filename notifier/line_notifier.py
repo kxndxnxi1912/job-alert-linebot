@@ -29,6 +29,10 @@ class LineNotifier:
         self.access_token = Config.LINE_CHANNEL_ACCESS_TOKEN
         self.messaging_api = None
 
+        # If access token is empty, auto-issue via OAuth using channel_id and channel_secret
+        if not self.access_token and Config.LINE_CHANNEL_ID and Config.LINE_CHANNEL_SECRET:
+            self.access_token = self._issue_oauth_token()
+
         if LINE_SDK_AVAILABLE and self.access_token:
             try:
                 configuration = Configuration(access_token=self.access_token)
@@ -37,6 +41,31 @@ class LineNotifier:
                 logger.info("[LineNotifier] LINE Messaging API initialized successfully.")
             except Exception as e:
                 logger.error(f"[LineNotifier] Failed to initialize LINE API: {e}")
+
+    @staticmethod
+    def _issue_oauth_token() -> str:
+        """Issue a channel access token via LINE OAuth API."""
+        try:
+            import requests
+            resp = requests.post(
+                "https://api.line.me/v2/oauth/accessToken",
+                data={
+                    "grant_type": "client_credentials",
+                    "client_id": Config.LINE_CHANNEL_ID,
+                    "client_secret": Config.LINE_CHANNEL_SECRET
+                },
+                timeout=10
+            )
+            if resp.status_code == 200:
+                token = resp.json().get("access_token")
+                logger.info("[LineNotifier] Successfully acquired OAuth access token from LINE API.")
+                return token
+            else:
+                logger.error(f"[LineNotifier] Failed to acquire OAuth token: {resp.text}")
+        except Exception as e:
+            logger.error(f"[LineNotifier] Error requesting OAuth token: {e}")
+        return ""
+
 
     def is_configured(self) -> bool:
         """Check if LINE channel access token is configured."""

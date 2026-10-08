@@ -6,6 +6,7 @@ load_dotenv()
 
 class Config:
     # LINE Bot Settings
+    LINE_CHANNEL_ID = os.getenv("LINE_CHANNEL_ID", "2011930834")
     LINE_CHANNEL_ACCESS_TOKEN = os.getenv("LINE_CHANNEL_ACCESS_TOKEN", "")
     LINE_CHANNEL_SECRET = os.getenv("LINE_CHANNEL_SECRET", "")
     DEFAULT_LINE_USER_ID = os.getenv("DEFAULT_LINE_USER_ID", "")  # Optional fallback user ID
