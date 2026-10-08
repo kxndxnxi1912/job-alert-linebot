@@ -27,7 +27,7 @@ class Config:
 
 
     # Scraper & Worker Settings
-    POLL_INTERVAL_SECONDS = int(os.getenv("POLL_INTERVAL_SECONDS", "180"))  # default: 3 minutes
+    POLL_INTERVAL_SECONDS = int(os.getenv("POLL_INTERVAL_SECONDS", "30"))  # default: 30 seconds (ultra-fast real-time)
     FASTWORK_ENABLED = os.getenv("FASTWORK_ENABLED", "true").lower() in ("true", "1", "yes")
     FACEBOOK_ENABLED = os.getenv("FACEBOOK_ENABLED", "true").lower() in ("true", "1", "yes")
 
@@ -44,14 +44,19 @@ class Config:
     # Server Port for Railway
     PORT = int(os.getenv("PORT", "5000"))
 
-    # Default Keywords preset
+    # Default Keywords preset (expanded for maximum job coverage)
     DEFAULT_KEYWORDS = [
+        # Web & Frontend/Backend
         "เขียนโปรแกรม",
         "โปรแกรมเมอร์",
+        "โปรแกรม",
         "เว็บ",
         "web",
         "website",
         "web developer",
+        "ทำเว็บ",
+        "รับทำเว็บ",
+        "wordpress",
         "frontend",
         "backend",
         "fullstack",
@@ -61,26 +66,51 @@ class Config:
         "nextjs",
         "node",
         "nodejs",
+        # Languages & Frameworks
         "python",
         "golang",
+        "php",
+        "java",
+        "c#",
+        "c++",
         "django",
         "fastapi",
-        "flutter",
+        "laravel",
+        "api",
+        # Mobile & App
+        "แอป",
+        "app",
         "mobile app",
+        "flutter",
+        "react native",
         "ios",
         "android",
+        # AI & Data & Automation
         "ai",
         "machine learning",
         "deep learning",
         "data science",
         "data engineer",
-        "devops",
-        "ซอฟต์แวร์",
-        "software",
-        "api",
+        "data",
         "chatgpt",
         "llm",
         "automation",
         "บอท",
-        "bot"
+        "bot",
+        "scraping",
+        "crawler",
+        # IT & Software & DB
+        "ซอฟต์แวร์",
+        "software",
+        "ระบบ",
+        "ระบบหลังบ้าน",
+        "devops",
+        "database",
+        "sql",
+        "it",
+        "แก้บั๊ก",
+        "script",
+        "code",
+        "coding",
+        "develop"
     ]

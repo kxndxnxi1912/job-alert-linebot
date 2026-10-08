@@ -100,15 +100,18 @@ def init_db():
     session = SessionLocal()
 
     try:
-        count = session.query(Keyword).count()
-        if count == 0:
-            print("[Database] Seeding default keywords...")
-            for w in Config.DEFAULT_KEYWORDS:
-                clean_word = w.strip().lower()
-                if clean_word:
-                    session.add(Keyword(word=clean_word, is_active=True))
+        # Sync default keywords into database
+        existing_keywords = {k.word.lower() for k in session.query(Keyword).all()}
+        new_count = 0
+        for w in Config.DEFAULT_KEYWORDS:
+            clean_word = w.strip().lower()
+            if clean_word and clean_word not in existing_keywords:
+                session.add(Keyword(word=clean_word, is_active=True))
+                existing_keywords.add(clean_word)
+                new_count += 1
+        if new_count > 0:
             session.commit()
-            print(f"[Database] Seeded {len(Config.DEFAULT_KEYWORDS)} default keywords successfully.")
+            print(f"[Database] Synced {new_count} new keywords from Config.DEFAULT_KEYWORDS successfully.")
         
         # If DEFAULT_LINE_USER_ID is set in env, auto-register as subscriber
         if Config.DEFAULT_LINE_USER_ID:

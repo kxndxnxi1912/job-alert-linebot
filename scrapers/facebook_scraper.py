@@ -218,16 +218,18 @@ class FacebookScraper:
     def _get_demo_jobs(self) -> list[dict]:
         """
         Demo sample posts representing realistic developer jobs from popular Thai groups.
-        Ensures the bot is fully testable immediately with direct post links.
+        Refreshes every 90 seconds to simulate a continuous feed of active opportunities.
         """
-        now_ts = int(time.time() / 3600)  # changes hourly so post_id stays stable within an hour
-        return [
+        now_ts = int(time.time() / 90)  # changes every 90 seconds (1.5 minutes)
+        cycle = now_ts % 4
+
+        all_templates = [
             {
                 "post_id": f"fb_demo_prog_{now_ts}",
                 "source": "Facebook",
                 "group_name": "สมาคมโปรแกรมเมอร์ไทย (Thai Programmer Association)",
                 "title": "[หาคนทำเว็บ/Fullstack] ต้องการฟรีแลนซ์เขียน Web Dashboard ด้วย React + Node.js",
-                "content": "สวัสดีครับทีมงานต้องการหาฟรีแลนซ์ Fullstack Developer ทำระบบเว็บแดชบอร์ดจัดการข้อมูล เชื่อมต่อ REST API และ PostgreSQL ใช้ React, Node.js, TailwindCSS งบประมาณ 35,000 - 50,000 บาท ระยะเวลา 1 เดือน สนใจทักแชทพร้อมส่งผลงานได้เลยครับ",
+                "content": "สวัสดีครับทีมงานต้องการหาฟรีแลนซ์ Fullstack Developer ทำระบบเว็บแดชบอร์ดจัดการข้อมูล เชื่อมต่อ REST API และ PostgreSQL ใช้ React, Node.js, TailwindCSS งบประมาณ 35,000 - 50,000 บาท สนใจทักแชทพร้อมส่งผลงานได้เลยครับ",
                 "budget": "35,000 - 50,000 บาท",
                 "url": f"https://www.facebook.com/groups/thaiprogrammer/posts/1015849382103{now_ts % 1000:03d}",
                 "created_at": "เมื่อสักครู่"
@@ -241,5 +243,28 @@ class FacebookScraper:
                 "budget": "40,000 บาท",
                 "url": f"https://www.facebook.com/groups/datasciencethailand/posts/2039485719203{now_ts % 1000:03d}",
                 "created_at": "เมื่อสักครู่"
+            },
+            {
+                "post_id": f"fb_demo_mobile_{now_ts}",
+                "source": "Facebook",
+                "group_name": "Flutter & Mobile Developer Thailand",
+                "title": "[หาคนทำ Mobile App] พัฒนาแอปพลิเคชันซื้อขายสินค้าด้วย Flutter (iOS & Android)",
+                "content": "ต้องการฟรีแลนซ์ทำแอปพลิเคชัน Mobile รองรับทั้ง iOS และ Android ด้วย Flutter เชื่อมต่อ Firebase และ REST API มีระบบชำระเงิน งบประมาณ 60,000 บาท ระยะเวลาส่งงาน 1 เดือนครึ่ง ทักแชทด่วนครับ",
+                "budget": "60,000 บาท",
+                "url": f"https://www.facebook.com/groups/flutterthailand/posts/301928471920{now_ts % 1000:03d}",
+                "created_at": "เมื่อสักครู่"
+            },
+            {
+                "post_id": f"fb_demo_web_{now_ts}",
+                "source": "Facebook",
+                "group_name": "รับทำเว็บไซต์ WordPress & Web Developer Thailand",
+                "title": "[รับทำเว็บ] ต้องการคนทำเว็บไซต์บริษัท Landing Page + ระบบนัดหมายออนไลน์",
+                "content": "ต้องการฟรีแลนซ์ทำเว็บไซต์องค์กร มีฟอร์มลงทะเบียนและระบบปฏิทินนัดหมาย รองรับ Responsive มือถือ ใช้ WordPress หรือ Next.js ก็ได้ งบประมาณ 25,000 บาท สนใจทักแชทพร้อมแนบ Portfolio ครับ",
+                "budget": "25,000 บาท",
+                "url": f"https://www.facebook.com/groups/wordpressdeveloperthai/posts/401928371920{now_ts % 1000:03d}",
+                "created_at": "เมื่อสักครู่"
             }
         ]
+
+        # Rotate posts so each cycle feeds a new fresh job
+        return [all_templates[cycle], all_templates[(cycle + 1) % 4]]
