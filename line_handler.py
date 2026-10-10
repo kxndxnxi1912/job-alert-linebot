@@ -248,33 +248,32 @@ class LineBotCommandHandler:
             # Search active jobs right now (Fastwork + Facebook)
             matching_jobs = self._search_live_jobs(analysis["search_keywords"], analysis["core_terms"])
 
-            core_display = ", ".join(analysis["core_terms"][:4]) if analysis["core_terms"] else "งานซอฟต์แวร์/ไอที"
+            target_display = analysis.get("target_subject") or "งานไอทีและซอฟต์แวร์"
+            core_display = ", ".join(analysis["core_terms"][:4]) if analysis["core_terms"] else target_display
             
             if matching_jobs:
                 top_jobs = matching_jobs[:4]
                 intro_text = (
-                    "🎯 บอทเข้าใจคำสั่งของคุณแล้วครับ!\n"
-                    f"🔍 ค้นหา: {analysis['display_summary']}\n"
-                    f"📌 สกิลที่ตรวจพบ: {core_display}\n"
-                    "✅ บันทึกเข้าสู่ระบบแจ้งเตือนอัตโนมัติให้คุณเรียบร้อยแล้ว\n"
-                    f"🚀 พบงานที่เปิดรับสมัครอยู่ตอนนี้ {len(top_jobs)} งาน ดังนี้ครับ 👇"
+                    f"🎯 บอทตรวจพบว่าคุณกำลังมองหา: 【 {target_display} 】\n"
+                    f"🔍 คำค้นหาที่ตรวจพบ: {core_display}\n"
+                    "✅ บันทึกเข้าสู่ระบบแจ้งเตือนอัตโนมัติให้คุณเรียบร้อยแล้ว!\n"
+                    f"🚀 พบประกาศงานที่เปิดรับสมัครอยู่ตอนนี้ {len(top_jobs)} งาน ดังนี้ครับ 👇"
                 )
                 carousel = self.notifier.create_flex_carousel(top_jobs, max_items=4)
                 return {
                     "text": intro_text,
                     "flex": carousel,
-                    "alt_text": f"พบงานที่ตรงกับ '{raw_text[:30]}' จำนวน {len(top_jobs)} งาน"
+                    "alt_text": f"พบงาน {target_display} ({len(top_jobs)} งาน)"
                 }
             else:
                 top_kws = ", ".join(analysis["search_keywords"][:6])
                 return (
-                    "🎯 บอทเข้าใจคำสั่งของคุณแล้วครับ!\n"
-                    f"🔍 สายงานที่กำลังมองหา: {analysis['display_summary']}\n"
-                    f"📌 คำค้นหาหลัก: {core_display}\n"
-                    f"🏷️ คำค้นหาที่ระบบเปิดแจ้งเตือน: {top_kws}...\n\n"
+                    f"🎯 บอทตรวจพบว่าคุณกำลังมองหา: 【 {target_display} 】\n"
+                    f"🔍 คำค้นหาหลัก: {core_display}\n"
+                    f"🏷️ คำค้นหาที่ระบบเปิดติดตาม: {top_kws}...\n\n"
                     "✅ บันทึกเข้าสู่ระบบแจ้งเตือนอัตโนมัติของคุณเรียบร้อยแล้วครับ!\n"
                     "(ขณะนี้ยังไม่มีประกาศงานใหม่ที่ตรงกันในรอบล่าสุด)\n\n"
-                    f"🔔 ทันทีที่มีผู้ว่าจ้างโพสต์งานด้าน {core_display} บน Fastwork หรือ Facebook กลุ่มต่างๆ ระบบจะส่งการ์ดแจ้งเตือนพร้อมลิงก์ตรงให้คุณทันทีแบบ Real-time ครับ!\n\n"
+                    f"🔔 ทันทีที่มีผู้ว่าจ้างโพสต์ {target_display} บน Fastwork หรือ Facebook กลุ่มต่างๆ ระบบจะส่งการ์ดแจ้งเตือนพร้อมลิงก์ตรงให้คุณทันทีแบบ Real-time ครับ!\n\n"
                     "💡 คุณสามารถเปลี่ยนหรือใส่คำสั่งค้นหาใหม่ได้ตลอดเวลา เช่น:\n"
                     "• 'หางานทำเว็บ React และ Node.js'\n"
                     "• 'อยากได้งาน Mobile app Flutter ครับ'"

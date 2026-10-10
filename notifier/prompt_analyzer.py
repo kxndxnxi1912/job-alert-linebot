@@ -6,13 +6,14 @@ logger = logging.getLogger(__name__)
 class PromptAnalyzer:
     """
     Analyzes natural language job search prompts from users,
-    e.g. "ช่วยหางานด้านซอฟต์แวร์ และการทำ AI",
+    e.g. "มีงานเขียนโปรแกรม Python ไหม",
+         "ช่วยหางานด้านซอฟต์แวร์ และการทำ AI",
          "หางานทำเว็บ React และ Node.js",
-         "อยากได้งาน Mobile app Flutter ครับ"
-    Extracts tech domains, core keywords, and expands synonyms for alerting.
+         "อยากได้งาน Mobile app Flutter ครับ",
+         "อยากได้งานกราฟิก หรือตัดต่อวิดีโอ"
+    Detects what kind of job the person is looking for and extracts keywords for alerting.
     """
 
-    # Domain dictionary mapping tech domains to trigger terms and expanded search keywords
     DOMAINS = {
         "software": {
             "name": "ซอฟต์แวร์ / Software Engineering",
@@ -74,22 +75,40 @@ class PromptAnalyzer:
             "expanded": [
                 "devops", "docker", "cloud", "aws", "database", "sql"
             ]
+        },
+        "design_media": {
+            "name": "Graphic / Video Editing / Design",
+            "triggers": [
+                "กราฟิก", "graphic", "ตัดต่อ", "ตัดต่อวิดีโอ", "video editor",
+                "photoshop", "illustrator", "premiere", "canva", "ออกแบบ", "design"
+            ],
+            "expanded": [
+                "กราฟิก", "graphic", "ตัดต่อ", "ตัดต่อวิดีโอ", "ออกแบบ", "design"
+            ]
         }
     }
 
-    # Common intent prefix and suffix words to strip or detect
-    INTENT_TRIGGERS = [
-        "ช่วยหา", "ช่วยหางาน", "ช่วยค้นหา", "ช่วยแนะนำ", "ช่วยดูงาน",
-        "หางาน", "อยากหางาน", "อยากได้งาน", "ต้องการงาน", "มองหางาน", "สนใจงาน",
-        "มีงาน", "ค้นหางาน", "ค้นหา", "หาโปรเจกต์", "หาฟรีแลนซ์", "รับงาน",
-        "อยากทำ", "ทำโปรเจกต์", "งานด้าน", "งานสาย", "ด้าน", "การทำ", "สายงาน"
+    # Leading conversational fluff to remove
+    FILLER_PHRASES = [
+        r'ช่วยหางานด้าน', r'ช่วยหางาน', r'ช่วยค้นหางาน', r'ช่วยค้นหา', r'ช่วยหา', r'ช่วยแนะนำงาน', r'ช่วยดูงาน',
+        r'อยากหางานด้าน', r'อยากหางาน', r'อยากได้งานด้าน', r'อยากได้งาน', r'ต้องการงานด้าน', r'ต้องการงาน',
+        r'สนใจงานด้าน', r'สนใจงาน', r'มองหางานด้าน', r'มองหางาน', r'หางานด้าน', r'หางาน',
+        r'มีงานด้าน', r'มีงาน', r'ค้นหางาน', r'ค้นหา', r'หาฟรีแลนซ์', r'หาโปรเจกต์', r'รับงาน',
+        r'อยากทำ', r'ทำโปรเจกต์', r'งานด้าน', r'งานสาย', r'สายงาน'
+    ]
+
+    # Trailing conversational fluff to remove
+    END_FILLERS = [
+        r'ไหมครับ', r'มั้ยครับ', r'ไหมค่ะ', r'มั้ยค่ะ', r'ไหมคะ', r'มั้ยคะ',
+        r'บ้างไหมครับ', r'บ้างมั้ยครับ', r'บ้างไหมค่ะ', r'บ้างไหม', r'บ้างมั้ย',
+        r'หน่อยครับ', r'หน่อยค่ะ', r'หน่อย', r'ไหม', r'มั้ย', r'ครับ', r'ค่ะ', r'คะ', r'นะ', r'ด้วย'
     ]
 
     GREETING_TRIGGERS = [
         "สวัสดี", "หวัดดี", "hello", "hi", "hey", "ดีครับ", "ดีค่ะ", "ดีจ้า"
     ]
 
-    # Specific tech terms (languages, frameworks) that can be extracted directly
+    # Specific tech words (languages, frameworks) that can be extracted directly
     TECH_WORDS = [
         "python", "javascript", "typescript", "golang", "go", "java", "c#", "c++",
         "rust", "php", "react", "vue", "angular", "flutter", "nextjs", "nodejs",
@@ -102,9 +121,22 @@ class PromptAnalyzer:
         """Check if message is a simple greeting."""
         clean = text.strip().lower()
         if clean in cls.GREETING_TRIGGERS or any(clean.startswith(g) for g in cls.GREETING_TRIGGERS):
-            # If it's short, it's just a greeting
             return len(clean) <= 15
         return False
+
+    @classmethod
+    def extract_target_subject(cls, text: str) -> str:
+        """
+        Strip conversational filler words to isolate the core job subject.
+        e.g. "มีงานเขียนโปรแกรม Python ไหม" -> "เขียนโปรแกรม Python"
+             "ช่วยหางานด้านซอฟต์แวร์ และการทำ AI" -> "ซอฟต์แวร์ และการทำ AI"
+        """
+        s = text.strip()
+        for f in cls.FILLER_PHRASES:
+            s = re.sub(rf'^\s*{f}\s*', '', s, flags=re.IGNORECASE)
+        for ef in cls.END_FILLERS:
+            s = re.sub(rf'\s*{ef}\s*$', '', s, flags=re.IGNORECASE)
+        return s.strip()
 
     @classmethod
     def is_job_search_prompt(cls, text: str) -> bool:
@@ -116,10 +148,10 @@ class PromptAnalyzer:
             return False
 
         # If it explicitly contains job search intent phrases
-        if any(intent in clean for intent in cls.INTENT_TRIGGERS):
+        if any(re.search(rf'{f}', clean) for f in cls.FILLER_PHRASES):
             return True
 
-        # Or if it contains domain triggers or tech keywords
+        # Or if it contains domain triggers
         for domain, data in cls.DOMAINS.items():
             for trigger in data["triggers"]:
                 if trigger in clean:
@@ -136,26 +168,34 @@ class PromptAnalyzer:
     @classmethod
     def analyze_prompt(cls, prompt_text: str) -> dict:
         """
-        Analyze a natural language prompt and return structured information:
-        - raw_prompt
-        - detected_domains (list of matched domain names)
-        - core_terms (exact user terms found in prompt)
-        - search_keywords (expanded keywords for alert monitoring and search)
-        - display_summary (Thai description of matched domains)
+        Analyze any natural language job prompt:
+        Detects what kind of job the user is looking for and extracts keywords.
         """
         raw = prompt_text.strip()
         lower_text = raw.lower()
 
+        # 1. Extract the clean target job subject
+        target_subject = cls.extract_target_subject(raw)
+        if not target_subject:
+            target_subject = raw
+
         matched_domains = []
         core_terms = []
         expanded_keywords = []
-        summary_labels = []
 
-        # 1. Match domains
+        # 2. Split target subject into core terms by separators (และ, หรือ, กับ, ,, +, /, space)
+        raw_subterms = re.split(r'\s*(?:และ|หรือ|กับ|,|\+|/)\s*', target_subject)
+        for sub in raw_subterms:
+            sub_clean = sub.replace("การทำ", "").replace("ทำ", "").strip()
+            if len(sub_clean) >= 2 and sub_clean not in core_terms:
+                core_terms.append(sub_clean)
+                if sub_clean not in expanded_keywords:
+                    expanded_keywords.append(sub_clean)
+
+        # 3. Match against domain ontology
         for domain_key, domain_info in cls.DOMAINS.items():
             domain_hit = False
             for trigger in domain_info["triggers"]:
-                # Check match
                 if trigger.isascii() and len(trigger) <= 3:
                     p = rf"(?<![a-zA-Z]){re.escape(trigger)}(?![a-zA-Z])"
                     hit = bool(re.search(p, lower_text))
@@ -164,17 +204,19 @@ class PromptAnalyzer:
 
                 if hit:
                     domain_hit = True
-                    if trigger not in core_terms:
-                        core_terms.append(trigger)
+                    clean_trig = trigger.replace("การทำ", "").replace("ทำ", "").strip()
+                    if clean_trig and clean_trig not in core_terms:
+                        core_terms.append(clean_trig)
+                        if clean_trig not in expanded_keywords:
+                            expanded_keywords.append(clean_trig)
 
             if domain_hit:
-                matched_domains.append(domain_key)
-                summary_labels.append(domain_info["name"])
+                matched_domains.append(domain_info["name"])
                 for kw in domain_info["expanded"]:
                     if kw not in expanded_keywords:
                         expanded_keywords.append(kw)
 
-        # 2. Extract standalone tech words from prompt
+        # 4. Extract standalone tech words from prompt
         for tw in cls.TECH_WORDS:
             p = rf"(?<![a-zA-Z]){re.escape(tw)}(?![a-zA-Z])"
             if re.search(p, lower_text):
@@ -183,31 +225,20 @@ class PromptAnalyzer:
                 if tw not in expanded_keywords:
                     expanded_keywords.append(tw)
 
-        # 3. Clean and normalize core terms (e.g. remove filler words like 'การทำ')
-        filtered_core = []
-        for term in core_terms:
-            t = term.replace("การทำ", "").replace("ทำ", "").strip()
-            if t and t not in filtered_core:
-                filtered_core.append(t)
-                if t not in expanded_keywords:
-                    expanded_keywords.insert(0, t)
-
-        # Fallback if no specific tech matched but intent was detected
+        # Fallback if no specific tech matched
         if not expanded_keywords:
-            expanded_keywords = ["เขียนโปรแกรม", "ซอฟต์แวร์", "เว็บ", "ai", "app"]
-            filtered_core = ["งานไอทีและซอฟต์แวร์"]
-            summary_labels = ["งานเขียนโปรแกรมและซอฟต์แวร์ทั่วไป"]
+            expanded_keywords = [target_subject]
+            core_terms = [target_subject]
 
-        # Build display summary
-        if summary_labels:
-            display_summary = " และ ".join(summary_labels)
-        else:
-            display_summary = ", ".join(filtered_core)
+        # Build clean user-facing target title
+        clean_title = target_subject
+        if not clean_title.startswith("งาน") and not clean_title.startswith("สาย"):
+            clean_title = f"งาน{clean_title}"
 
         return {
             "raw_prompt": raw,
+            "target_subject": clean_title,
             "detected_domains": matched_domains,
-            "core_terms": filtered_core,
-            "search_keywords": expanded_keywords,
-            "display_summary": display_summary
+            "core_terms": core_terms,
+            "search_keywords": expanded_keywords
         }
