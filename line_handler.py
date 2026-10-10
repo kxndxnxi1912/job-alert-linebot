@@ -45,7 +45,7 @@ class LineBotCommandHandler:
 
         all_jobs = []
         try:
-            fw_jobs = FastworkScraper().fetch_jobs()
+            fw_jobs = FastworkScraper().fetch_jobs(max_pages=3)
             all_jobs.extend(fw_jobs)
         except Exception as e:
             logger.warning(f"[LineHandler] Error fetching Fastwork for live search: {e}")
@@ -252,18 +252,36 @@ class LineBotCommandHandler:
             core_display = ", ".join(analysis["core_terms"][:4]) if analysis["core_terms"] else target_display
             
             if matching_jobs:
-                top_jobs = matching_jobs[:4]
+                top_jobs = matching_jobs[:12]
+                
+                # Build formatted summary text list with direct links
+                job_list_text_lines = []
+                for i, j in enumerate(top_jobs[:5]):
+                    src_tag = "🟣 [Fastwork]" if j.get("source", "").lower() == "fastwork" else "🔵 [Facebook]"
+                    posted_tag = f" ({j.get('posted_label')})" if j.get('posted_label') else ""
+                    budget_str = f"\n   💰 งบประมาณ: {j.get('budget')}" if j.get('budget') else ""
+                    job_list_text_lines.append(
+                        f"{i+1}. {src_tag} {j.get('title')[:60]}{posted_tag}"
+                        f"{budget_str}\n"
+                        f"   🔗 {j.get('url')}"
+                    )
+                
+                jobs_formatted_text = "\n\n".join(job_list_text_lines)
+                more_note = f"\n\n*(และอีก {len(top_jobs) - 5} งานในการ์ดด้านล่าง สามารถเลื่อนสไลด์ดูและกดเลือกได้เลยครับ)*" if len(top_jobs) > 5 else ""
+
                 intro_text = (
                     f"🎯 บอทตรวจพบว่าคุณกำลังมองหา: 【 {target_display} 】\n"
-                    f"🔍 คำค้นหาที่ตรวจพบ: {core_display}\n"
-                    "✅ บันทึกเข้าสู่ระบบแจ้งเตือนอัตโนมัติให้คุณเรียบร้อยแล้ว!\n"
-                    f"🚀 พบประกาศงานที่เปิดรับสมัครอยู่ตอนนี้ {len(top_jobs)} งาน ดังนี้ครับ 👇"
+                    f"🟢 คัดเฉพาะงานที่ยังเปิดรับสมัครอยู่และไม่หมดอายุ (พบ {len(matching_jobs)} งาน):\n\n"
+                    f"{jobs_formatted_text}"
+                    f"{more_note}\n\n"
+                    "💡 คุณสามารถคลิกปุ่ม '🚀 กดดูรายละเอียดงานนี้' ในการ์ดด้านล่าง หรือแตะลิงก์ด้านบนเพื่อเปิดดูประกาศงานได้ทันทีครับ!"
                 )
-                carousel = self.notifier.create_flex_carousel(top_jobs, max_items=4)
+                
+                carousel = self.notifier.create_job_list_carousel(top_jobs, target_title=target_display)
                 return {
                     "text": intro_text,
                     "flex": carousel,
-                    "alt_text": f"พบงาน {target_display} ({len(top_jobs)} งาน)"
+                    "alt_text": f"📋 รายการงาน {target_display} ({len(top_jobs)} งาน)"
                 }
             else:
                 top_kws = ", ".join(analysis["search_keywords"][:6])

@@ -224,6 +224,159 @@ class LineNotifier:
             "contents": bubbles
         }
 
+    def create_job_list_carousel(self, jobs: list[dict], target_title: str = "", items_per_page: int = 4) -> dict:
+        """
+        Create a multi-page interactive List Carousel for LINE.
+        Allows users to browse a larger catalog of active jobs and click on any job to view/apply.
+        """
+        if not jobs:
+            return None
+
+        # Split jobs into pages (max 4 per page, up to 3 pages = 12 jobs)
+        pages = []
+        for i in range(0, min(len(jobs), 12), items_per_page):
+            pages.append(jobs[i:i + items_per_page])
+
+        total_pages = len(pages)
+        bubbles = []
+
+        for page_idx, page_jobs in enumerate(pages):
+            rows = []
+            for item_idx, job in enumerate(page_jobs):
+                overall_idx = page_idx * items_per_page + item_idx + 1
+                is_fw = job.get("source", "").lower() == "fastwork"
+                badge_text = "🟣 FASTWORK" if is_fw else "🔵 FACEBOOK"
+                badge_color = "#6D28D9" if is_fw else "#1D4ED8"
+                btn_color = "#5A20CB" if is_fw else "#1877F2"
+                
+                budget = job.get("budget") or "ตามตกลง"
+                title = job.get("title") or "ไม่มีหัวข้อประกาศ"
+                url = job.get("url") or "https://fastwork.co"
+                posted_tag = job.get("posted_label") or "ล่าสุด"
+
+                row_box = {
+                    "type": "box",
+                    "layout": "vertical",
+                    "margin": "md",
+                    "paddingAll": "10px",
+                    "backgroundColor": "#F8FAFC",
+                    "cornerRadius": "8px",
+                    "action": {
+                        "type": "uri",
+                        "label": "open_job",
+                        "uri": url if url.startswith("http") else "https://fastwork.co"
+                    },
+                    "contents": [
+                        {
+                            "type": "box",
+                            "layout": "horizontal",
+                            "contents": [
+                                {
+                                    "type": "text",
+                                    "text": f"{badge_text}  {posted_tag}",
+                                    "size": "xxs",
+                                    "color": badge_color,
+                                    "weight": "bold",
+                                    "flex": 0
+                                },
+                                {
+                                    "type": "text",
+                                    "text": f"💰 {budget}",
+                                    "size": "xxs",
+                                    "color": "#059669",
+                                    "align": "end",
+                                    "weight": "bold"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "text": f"{overall_idx}. {title}",
+                            "weight": "bold",
+                            "size": "sm",
+                            "color": "#0F172A",
+                            "wrap": True,
+                            "margin": "xs",
+                            "maxLines": 2
+                        },
+                        {
+                            "type": "button",
+                            "style": "primary",
+                            "height": "sm",
+                            "color": btn_color,
+                            "margin": "sm",
+                            "action": {
+                                "type": "uri",
+                                "label": "🚀 กดดูรายละเอียดงานนี้",
+                                "uri": url if url.startswith("http") else "https://fastwork.co"
+                            }
+                        }
+                    ]
+                }
+                rows.append(row_box)
+
+            bubble = {
+                "type": "bubble",
+                "size": "mega",
+                "header": {
+                    "type": "box",
+                    "layout": "vertical",
+                    "backgroundColor": "#0F172A",
+                    "paddingAll": "14px",
+                    "contents": [
+                        {
+                            "type": "box",
+                            "layout": "horizontal",
+                            "contents": [
+                                {
+                                    "type": "text",
+                                    "text": f"📋 รายการประกาศงานที่เปิดรับสมัคร",
+                                    "color": "#94A3B8",
+                                    "size": "xs",
+                                    "weight": "bold"
+                                },
+                                {
+                                    "type": "text",
+                                    "text": f"หน้า {page_idx + 1}/{total_pages}",
+                                    "color": "#38BDF8",
+                                    "size": "xs",
+                                    "align": "end",
+                                    "weight": "bold"
+                                }
+                            ]
+                        },
+                        {
+                            "type": "text",
+                            "text": f"🎯 {target_title or 'งานที่ตรวจพบ'}",
+                            "color": "#FFFFFF",
+                            "size": "md",
+                            "weight": "bold",
+                            "wrap": True,
+                            "margin": "xs"
+                        },
+                        {
+                            "type": "text",
+                            "text": f"🟢 คัดเลือกเฉพาะงานที่ยังไม่หมดอายุ (รวม {len(jobs)} งาน)",
+                            "color": "#86EFAC",
+                            "size": "xxs",
+                            "margin": "xs"
+                        }
+                    ]
+                },
+                "body": {
+                    "type": "box",
+                    "layout": "vertical",
+                    "paddingAll": "12px",
+                    "contents": rows
+                }
+            }
+            bubbles.append(bubble)
+
+        return {
+            "type": "carousel",
+            "contents": bubbles
+        }
+
     def create_text_message(self, job: dict, matched_keywords: list[str]) -> str:
         """Create fallback plain text message."""
         source = job.get("source", "งานใหม่")
