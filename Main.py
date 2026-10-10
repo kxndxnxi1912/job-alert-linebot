@@ -66,8 +66,8 @@ def health_check():
     return jsonify({
         "status": "online",
         "service": "Job Alert Bot (Fastwork & Facebook)",
-        "version": "1.0.4",
-        "build_version": "multi-page-job-list-v1",
+        "version": "1.0.5",
+        "build_version": "auto-subscribe-v1",
         "worker_running": worker.is_running,
         "poll_interval_seconds": Config.POLL_INTERVAL_SECONDS,
         "facebook_groups_count": len(Config.FB_GROUP_IDS),
@@ -110,19 +110,22 @@ if webhook_handler:
         try:
             source_id = getattr(event.source, "user_id", None)
             logger.info(f"[LINE Follow] User followed: {source_id}")
+            # Auto add subscriber immediately
+            if source_id:
+                database.add_subscriber(source_id, "user")
+
             welcome_msg = (
                 "👋 สวัสดีครับ! ยินดีต้อนรับสู่ Job Alert Bot 🤖\n"
                 "ระบบแจ้งเตือนงานด้าน Programming, Web, AI / ML และ Software\n"
                 "จาก Fastwork และ Facebook Groups (150+ งานล่าสุด)\n\n"
-                "🌟 คุณสามารถพิมพ์บอกงานที่ต้องการค้นหาได้ทันที เช่น:\n"
+                "✅ ระบบได้เปิดรับการแจ้งเตือนงานให้คุณอัตโนมัติเรียบร้อยแล้วครับ! 🎉\n"
+                "(คุณจะได้รับการแจ้งเตือนงานใหม่ทันทีโดยไม่ต้องพิมพ์คำสั่งใดๆ เพิ่มเติม)\n\n"
+                "🌟 คุณสามารถพิมพ์บอกงานที่กำลังตามหาเป็นพิเศษได้ทันที เช่น:\n"
                 "• 'มีงานเขียนโปรแกรม Python ไหม'\n"
                 "• 'ช่วยหางานด้านซอฟต์แวร์ และการทำ AI'\n"
                 "• 'หางานทำเว็บ React และ Node.js'\n\n"
                 "📖 หรือพิมพ์ 'วิธีใช้' เพื่อดูคู่มือคำสั่งทั้งหมดครับ"
             )
-            # Auto add subscriber
-            if source_id:
-                database.add_subscriber(source_id, "user")
             command_handler.reply(event.reply_token, welcome_msg, source_id=source_id)
         except Exception as e:
             logger.error(f"[LINE Follow Error] {e}")
@@ -150,15 +153,17 @@ if webhook_handler:
                 source_type = "room"
 
             logger.info(f"[LINE Join] Bot added to {source_type}: {source_id}")
+            # Auto add group subscriber immediately
             if source_id:
                 database.add_subscriber(source_id, source_type)
-                welcome_group_msg = (
-                    "👋 สวัสดีครับทุกคน! 🤖 Job Alert Bot เข้าร่วมเรียบร้อยแล้ว\n"
-                    "ระบบได้เปิดรับการแจ้งเตือนงานให้กลุ่มนี้อัตโนมัติเรียบร้อยครับ\n"
-                    "เมื่องานเขียนโปรแกรม, เว็บ, AI/ML เข้ามาใหม่ จะส่งการ์ดแจ้งเตือนให้ทันที!\n"
-                    "💡 สมาชิกสามารถพิมพ์ 'คีย์เวิร์ด' เพื่อดูคำค้นหา หรือ 'ทดสอบ' เพื่อดูตัวอย่างงานได้ครับ"
-                )
-                command_handler.reply(event.reply_token, welcome_group_msg, source_id=source_id)
+
+            welcome_group_msg = (
+                "👋 สวัสดีครับทุกคน! 🤖 Job Alert Bot เข้าร่วมกลุ่มเรียบร้อยแล้ว\n"
+                "✅ ระบบได้เปิดรับการแจ้งเตือนงานให้กลุ่มนี้อัตโนมัติแล้วครับ (ไม่ต้องพิมพ์คำสั่งใดๆ)\n"
+                "🔔 เมื่องานเขียนโปรแกรม, เว็บ, AI/ML เข้ามาใหม่ จะส่งการ์ดแจ้งเตือนให้ทันทีแบบ Real-time!\n\n"
+                "💡 สมาชิกสามารถพิมพ์บอกงานที่สนใจ เช่น 'มีงาน Python ไหม' หรือพิมพ์ 'วิธีใช้' ได้ครับ"
+            )
+            command_handler.reply(event.reply_token, welcome_group_msg, source_id=source_id)
         except Exception as e:
             logger.error(f"[LINE Join Error] {e}")
 
@@ -166,13 +171,15 @@ if webhook_handler:
     def handle_sticker_message(event):
         try:
             source_id = getattr(event.source, "user_id", None)
+            # Auto add subscriber immediately
             if source_id:
                 database.add_subscriber(source_id, "user")
-                command_handler.reply(
-                    event.reply_token,
-                    "👋 ได้รับสติกเกอร์แล้วครับ! ระบบได้บันทึกเปิดรับการแจ้งเตือนงานให้คุณเรียบร้อยแล้ว 🤖 (พิมพ์ 'วิธีใช้' เพื่อดูคำสั่งทั้งหมดครับ)",
-                    source_id=source_id
-                )
+
+            command_handler.reply(
+                event.reply_token,
+                "👋 ได้รับสติกเกอร์แล้วครับ! ระบบได้เปิดรับการแจ้งเตือนงานให้คุณอัตโนมัติเรียบร้อยแล้วครับ 🤖 (ไม่ต้องพิมพ์คำสั่งใดๆ เพิ่มเติม รอรับงานใหม่ได้เลย! หรือพิมพ์ 'วิธีใช้' เพื่อดูคำสั่งทั้งหมดครับ)",
+                source_id=source_id
+            )
         except Exception as e:
             logger.error(f"[LINE Sticker Error] {e}")
 

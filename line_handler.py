@@ -172,12 +172,19 @@ class LineBotCommandHandler:
         # 6. SUBSCRIBE / ติดตาม
         if lower_text in ("subscribe", "/subscribe", "ติดตาม", "เริ่ม", "start"):
             success, msg = database.add_subscriber(source_id, source_type)
-            return msg
+            return (
+                "✅ คุณเปิดรับการแจ้งเตือนงานใหม่อัตโนมัติอยู่แล้วครับ! 🎉\n"
+                "(ระบบตั้งค่าติดตามให้อัตโนมัติทันทีที่เข้าใช้งาน ไม่จำเป็นต้องพิมพ์คำสั่งใดๆ)\n\n"
+                "🔔 เมื่องานเขียนโปรแกรม, เว็บไซต์, ซอฟต์แวร์ หรือ AI/ML ตรงกับความสนใจเข้ามาใหม่ ระบบจะส่งการ์ดแจ้งเตือนให้ทันทีครับ!"
+            )
 
         # 7. UNSUBSCRIBE / ยกเลิก
         if lower_text in ("unsubscribe", "/unsubscribe", "ยกเลิก", "หยุด", "stop"):
             success, msg = database.remove_subscriber(source_id)
-            return msg
+            return (
+                "⏸️ ปิดรับการแจ้งเตือนงานเรียบร้อยแล้วครับ\n\n"
+                "💡 หากต้องการกลับมารับงานใหม่อีกครั้ง สามารถพิมพ์ 'ติดตาม' หรือพิมพ์คุยกับบอทได้ตลอดเวลาครับ"
+            )
 
         # 8. STATUS / สถานะ
         if lower_text in ("status", "/status", "สถานะ", "info"):
