@@ -209,6 +209,21 @@ class LineNotifier:
 
         return bubble
 
+    def create_flex_carousel(self, jobs: list[dict], max_items: int = 5) -> dict:
+        """Create a LINE Flex Message carousel containing multiple job bubbles."""
+        bubbles = []
+        for job in jobs[:max_items]:
+            kws = job.get("matched_keywords") or []
+            if isinstance(kws, str):
+                kws = [k.strip() for k in kws.split(",") if k.strip()]
+            bubble = self.create_flex_message(job, kws)
+            bubbles.append(bubble)
+
+        return {
+            "type": "carousel",
+            "contents": bubbles
+        }
+
     def create_text_message(self, job: dict, matched_keywords: list[str]) -> str:
         """Create fallback plain text message."""
         source = job.get("source", "งานใหม่")

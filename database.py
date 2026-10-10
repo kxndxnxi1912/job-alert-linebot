@@ -324,3 +324,64 @@ def get_recent_logs(limit: int = 20) -> list[dict]:
         return [l.to_dict() for l in logs]
     finally:
         session.close()
+
+def save_user_prompt(target_id: str, prompt: str) -> bool:
+    """Save the user's latest natural language job prompt."""
+    if not target_id or not prompt:
+        return False
+    session = SessionLocal()
+    try:
+        key = f"prompt_{target_id}"
+        setting = session.query(Setting).filter_by(key=key).first()
+        if setting:
+            setting.value = prompt
+        else:
+            session.add(Setting(key=key, value=prompt))
+        session.commit()
+        return True
+    except Exception as e:
+        session.rollback()
+        print(f"[Database] Error saving user prompt: {e}")
+        return False
+    finally:
+        session.close()
+
+def get_user_prompt(target_id: str) -> str:
+    """Retrieve the user's saved prompt."""
+    if not target_id:
+        return ""
+    session = SessionLocal()
+    try:
+        key = f"prompt_{target_id}"
+        setting = session.query(Setting).filter_by(key=key).first()
+        return setting.value if setting else ""
+    finally:
+        session.close()
+
+def add_keywords_batch(words: list[str]) -> int:
+    """Add and activate a batch of keywords, returning count of activated ones."""
+    if not words:
+        return 0
+    session = SessionLocal()
+    count = 0
+    try:
+        for w in words:
+            clean = w.strip().lower()
+            if not clean:
+                continue
+            existing = session.query(Keyword).filter_by(word=clean).first()
+            if existing:
+                if not existing.is_active:
+                    existing.is_active = True
+                    count += 1
+            else:
+                session.add(Keyword(word=clean, is_active=True))
+                count += 1
+        session.commit()
+        return count
+    except Exception as e:
+        session.rollback()
+        print(f"[Database] Error batch adding keywords: {e}")
+        return 0
+    finally:
+        session.close()
