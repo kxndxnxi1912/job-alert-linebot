@@ -112,12 +112,13 @@ if webhook_handler:
             logger.info(f"[LINE Follow] User followed: {source_id}")
             welcome_msg = (
                 "👋 สวัสดีครับ! ยินดีต้อนรับสู่ Job Alert Bot 🤖\n"
-                "ระบบแจ้งเตือนงานด้าน Programming, Web, AI / Machine Learning และ Software\n"
-                "จาก Fastwork และ Facebook Groups แบบ Real-time\n\n"
-                "📌 เริ่มต้นใช้งาน:\n"
-                "👉 ระบบได้เปิดรับการแจ้งเตือนงานให้คุณอัตโนมัติแล้วครับ!\n"
-                "👉 พิมพ์ 'คีย์เวิร์ด' เพื่อดูรายการคำค้นหาทั้งหมด\n"
-                "👉 พิมพ์ 'วิธีใช้' เพื่อดูคำสั่งทั้งหมดครับ"
+                "ระบบแจ้งเตือนงานด้าน Programming, Web, AI / ML และ Software\n"
+                "จาก Fastwork และ Facebook Groups (150+ งานล่าสุด)\n\n"
+                "🌟 คุณสามารถพิมพ์บอกงานที่ต้องการค้นหาได้ทันที เช่น:\n"
+                "• 'มีงานเขียนโปรแกรม Python ไหม'\n"
+                "• 'ช่วยหางานด้านซอฟต์แวร์ และการทำ AI'\n"
+                "• 'หางานทำเว็บ React และ Node.js'\n\n"
+                "📖 หรือพิมพ์ 'วิธีใช้' เพื่อดูคู่มือคำสั่งทั้งหมดครับ"
             )
             # Auto add subscriber
             if source_id:
