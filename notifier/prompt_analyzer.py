@@ -242,3 +242,35 @@ class PromptAnalyzer:
             "core_terms": core_terms,
             "search_keywords": expanded_keywords
         }
+
+    _PROMPT_CACHE = {}
+
+    @classmethod
+    def get_prompt_analysis(cls, prompt_text: str) -> dict:
+        """Cached prompt analysis to avoid repeated regex parsing during worker loops."""
+        clean = (prompt_text or "").strip()
+        if not clean:
+            from config import Config
+            clean = Config.DEFAULT_PROMPT
+
+        if clean not in cls._PROMPT_CACHE:
+            cls._PROMPT_CACHE[clean] = cls.analyze_prompt(clean)
+            if len(cls._PROMPT_CACHE) > 500:
+                cls._PROMPT_CACHE.pop(next(iter(cls._PROMPT_CACHE)))
+
+        return cls._PROMPT_CACHE[clean]
+
+    @classmethod
+    def matches_job_prompt(cls, job: dict, prompt: str = "") -> tuple[bool, list[str]]:
+        """
+        Check if a job matches what is requested in a natural language prompt.
+        Returns (is_match, matched_terms).
+        """
+        from notifier.matcher import KeywordMatcher
+        analysis = cls.get_prompt_analysis(prompt)
+        search_terms = analysis.get("search_keywords", [])
+        if not search_terms:
+            return False, []
+
+        matched = KeywordMatcher.matches_job(job, search_terms)
+        return (len(matched) > 0, matched)

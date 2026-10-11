@@ -304,12 +304,14 @@ def get_stats() -> dict:
         facebook_jobs = session.query(JobLog).filter_by(source="Facebook").count()
         keywords_count = session.query(Keyword).filter_by(is_active=True).count()
         subscribers_count = session.query(Subscriber).filter_by(is_active=True).count()
+        active_prompts_count = session.query(Setting).filter(Setting.key.like("prompt_%")).count()
         db_type = "PostgreSQL (Railway)" if "postgresql" in Config.DATABASE_URL else "SQLite (Local)"
         return {
             "total_jobs": total_jobs,
             "fastwork_jobs": fastwork_jobs,
             "facebook_jobs": facebook_jobs,
             "keywords_count": keywords_count,
+            "active_prompts_count": active_prompts_count,
             "subscribers_count": subscribers_count,
             "database": db_type
         }
@@ -355,6 +357,34 @@ def get_user_prompt(target_id: str) -> str:
         key = f"prompt_{target_id}"
         setting = session.query(Setting).filter_by(key=key).first()
         return setting.value if setting else ""
+    finally:
+        session.close()
+
+def get_all_user_prompts() -> dict[str, str]:
+    """Retrieve all saved user prompts mapped by target_id."""
+    session = SessionLocal()
+    try:
+        rows = session.query(Setting).filter(Setting.key.like("prompt_%")).all()
+        return {r.key.replace("prompt_", ""): r.value for r in rows if r.value}
+    finally:
+        session.close()
+
+def clear_user_prompt(target_id: str) -> bool:
+    """Clear or reset user's custom prompt back to default."""
+    if not target_id:
+        return False
+    session = SessionLocal()
+    try:
+        key = f"prompt_{target_id}"
+        setting = session.query(Setting).filter_by(key=key).first()
+        if setting:
+            session.delete(setting)
+            session.commit()
+            return True
+        return False
+    except Exception as e:
+        session.rollback()
+        return False
     finally:
         session.close()
 

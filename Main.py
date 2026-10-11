@@ -66,8 +66,8 @@ def health_check():
     return jsonify({
         "status": "online",
         "service": "Job Alert Bot (Fastwork & Facebook)",
-        "version": "1.0.6",
-        "build_version": "welcome-show-all-commands-v1",
+        "version": "1.0.7",
+        "build_version": "prompt-ai-only-v1",
         "worker_running": worker.is_running,
         "poll_interval_seconds": Config.POLL_INTERVAL_SECONDS,
         "facebook_groups_count": len(Config.FB_GROUP_IDS),
@@ -260,13 +260,15 @@ def trigger_check_now():
     }), 200
 
 
+@app.route("/api/prompts", methods=["GET"])
 @app.route("/api/keywords", methods=["GET"])
-def get_keywords():
-    """API endpoint to view active keywords."""
-    keywords = database.get_active_keywords()
+def get_prompts():
+    """API endpoint to view active user prompts and default AI prompt."""
+    prompts = database.get_all_user_prompts()
     return jsonify({
-        "total": len(keywords),
-        "keywords": keywords
+        "default_prompt": Config.DEFAULT_PROMPT,
+        "total_custom_prompts": len(prompts),
+        "custom_prompts": prompts
     }), 200
 
 
@@ -317,13 +319,16 @@ def ingest_facebook_post():
         "url": data.get("url", "https://facebook.com")
     }
 
-    keywords = database.get_active_keywords()
-    from notifier.matcher import KeywordMatcher
-    matched = KeywordMatcher.matches_job(post_item, keywords)
+    subscribers = database.get_subscribers()
+    user_prompts = database.get_all_user_prompts()
+    default_prompt = Config.DEFAULT_PROMPT
 
-    if matched:
-        subscribers = database.get_subscribers()
-        notifier.send_job_alert(post_item, matched, subscribers)
+    target_subs, matched_terms = worker._evaluate_job_for_subscribers(
+        post_item, subscribers, user_prompts, default_prompt
+    )
+
+    if target_subs:
+        notifier.send_job_alert(post_item, matched_terms, target_ids=target_subs)
         database.log_job(
             post_id=full_id,
             source="Facebook",
@@ -332,11 +337,15 @@ def ingest_facebook_post():
             content=post_item["content"],
             budget=post_item["budget"],
             url=post_item["url"],
-            matched_keywords=", ".join(matched)
+            matched_keywords=", ".join(matched_terms)
         )
-        return jsonify({"status": "matched_and_alerted", "matched_keywords": matched}), 200
+        return jsonify({
+            "status": "matched_and_alerted",
+            "matched_terms": matched_terms,
+            "alerted_subscribers_count": len(target_subs)
+        }), 200
 
-    return jsonify({"status": "skipped", "reason": "no_keyword_match"}), 200
+    return jsonify({"status": "skipped", "reason": "no_prompt_match"}), 200
 
 
 if __name__ == "__main__":

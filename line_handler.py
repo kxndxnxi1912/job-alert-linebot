@@ -34,32 +34,29 @@ except ImportError:
 def get_full_help_text() -> str:
     """Returns the comprehensive cheatsheet and guide of all bot commands."""
     return (
-        "📖 คู่มือคำสั่งทั้งหมด Job Alert Bot 🤖\n"
-        "ระบบแจ้งเตือนงาน Programming, Web, AI, Software\n"
+        "📖 คู่มือคำสั่งทั้งหมด Job Alert Bot (Prompt AI) 🤖\n"
+        "ระบบแจ้งเตือนและค้นหางานอัจฉริยะด้วย Prompt AI\n"
         "จาก Fastwork และ Facebook Groups (150+ งานล่าสุด)\n\n"
         "━━━━━━━━━━━━━━━━━━━\n"
-        "🌟 1. สั่งค้นหางานด้วย Prompt (แนะนำ)\n"
-        "พิมพ์บอกงานที่ต้องการค้นหาได้ทันที บอทจะตรวจจับสายงาน และดึงงานสดมาทำเป็น List ให้เลือกคลิกดู:\n"
-        "• 'มีงานเขียนโปรแกรม Python ไหม'\n"
+        "🌟 1. สั่งค้นหางานด้วย Prompt AI (แนะนำ)\n"
+        "พิมพ์บอกงานที่ต้องการค้นหาเป็นภาษาพูดได้ทันที บอทจะวิเคราะห์สายงาน และดึงงานสดที่ยังไม่หมดอายุมาทำเป็น List ให้เลือกคลิกดู:\n"
         "• 'ช่วยหางานด้านซอฟต์แวร์ และการทำ AI'\n"
+        "• 'มีงานเขียนโปรแกรม Python ไหม'\n"
         "• 'หางานทำเว็บ React และ Node.js'\n"
         "• 'อยากได้งาน Mobile app Flutter ครับ'\n"
         "• 'อยากได้งานกราฟิก หรือตัดต่อวิดีโอ'\n\n"
+        "💡 AI จะบันทึกคำสั่งนี้ไว้ และคอยส่งการแจ้งเตือนงานใหม่ที่ตรงกันให้คุณโดยอัตโนมัติ!\n\n"
         "━━━━━━━━━━━━━━━━━━━\n"
-        "⚙️ 2. จัดการคำค้นหา (Keywords)\n"
-        "• 'คีย์เวิร์ด' : ดูคำค้นหาทั้งหมดที่เปิดแจ้งเตือนอยู่\n"
-        "• 'เพิ่ม <คำ>' : เพิ่มคำค้นหาใหม่ (เช่น 'เพิ่ม vue')\n"
-        "• 'ลบ <คำ>' : ลบคำค้นหาออก (เช่น 'ลบ php')\n"
-        "• 'รีเซ็ต' : คืนค่าคำค้นหาเริ่มต้นทั้งหมด\n\n"
-        "━━━━━━━━━━━━━━━━━━━\n"
-        "👥 3. ข้อมูลกลุ่มและสถานะระบบ\n"
+        "📊 2. คำสั่งตรวจสอบและจัดการคำสั่งค้นหา\n"
+        "• 'สถานะ' : ดู Prompt ค้นหาปัจจุบันของคุณ และสถิติระบบ\n"
+        "• 'ล้างคำสั่ง' : รีเซ็ตคำสั่งค้นหากลับเป็นค่าเริ่มต้น (รับงาน Dev/AI ทุกประเภท)\n"
         "• 'กลุ่ม' : ดูกลุ่ม Facebook สาย Dev ที่บอทติดตาม\n"
-        "• 'สถานะ' : ดูสถิติระบบ, ฐานข้อมูล, คำสั่งล่าสุดของคุณ\n"
         "• 'ทดสอบ' : ให้บอทลองส่งการ์ดแจ้งเตือนงานตัวอย่าง\n\n"
         "━━━━━━━━━━━━━━━━━━━\n"
-        "🔔 4. การรับแจ้งเตือนงาน\n"
-        "• 'ติดตาม' : เปิดรับแจ้งเตือนงานใหม่อัตโนมัติ 24 ชม.\n"
+        "🔔 3. การรับแจ้งเตือนงาน\n"
+        "• ระบบเปิดรับแจ้งเตือนให้อัตโนมัติตั้งแต่เริ่มแอดเพื่อน\n"
         "• 'ยกเลิก' : หยุดรับการแจ้งเตือนงานในแชทนี้\n"
+        "• 'ติดตาม' : เปิดรับการแจ้งเตือนงานอีกครั้ง\n"
         "• 'วิธีใช้' : แสดงคู่มือคำสั่งทั้งหมดนี้อีกครั้ง"
     )
 
@@ -129,52 +126,37 @@ class LineBotCommandHandler:
                 f"💡 บอทจะคอยสแกนทุกกลุ่มเพื่อตรวจจับโพสต์ที่ตรงกับคีย์เวิร์ดของคุณ"
             )
 
-        # 2. KEYWORDS / คีย์เวิร์ด
-        if lower_text in ("keyword", "keywords", "/keyword", "/keywords", "คีย์เวิร์ด", "คำค้น"):
-            keywords = database.get_active_keywords()
-            if not keywords:
-                return "⚠️ ขณะนี้ยังไม่มีคีย์เวิร์ดในระบบ สามารถเพิ่มได้โดยพิมพ์ 'เพิ่ม <คำ>' หรือใส่ prompt เช่น 'ช่วยหางาน AI'"
-            
-            kws_formatted = "\n".join([f"• {kw}" for kw in sorted(keywords)])
+        # 2. CLEAR PROMPT / ล้างคำสั่ง
+        if lower_text in ("ล้างคำสั่ง", "ล้างprompt", "clear", "/clear", "reset prompt", "รีเซ็ตคำสั่ง", "ล้าง"):
+            database.clear_user_prompt(source_id)
             return (
-                f"📋 คีย์เวิร์ดที่กำลังติดตามอยู่ ({len(keywords)} คำ):\n"
-                f"{kws_formatted}\n\n"
-                f"💡 เพิ่มคีย์เวิร์ดใหม่ พิมพ์: เพิ่ม <คำ>\n"
-                f"💡 หรือสั่งเป็น prompt ได้เลย เช่น 'ช่วยหางานด้านซอฟต์แวร์ และการทำ AI'"
+                "🔄 ล้างคำสั่งค้นหาของคุณเรียบร้อยแล้วครับ!\n"
+                "ระบบจะกลับไปใช้ค่าเริ่มต้น: 【 งานเขียนโปรแกรม ซอฟต์แวร์ ทำเว็บ และ AI 】\n\n"
+                "💡 คุณสามารถพิมพ์บอกงานที่ต้องการใหม่ได้ทันที เช่น 'ช่วยหางานด้านซอฟต์แวร์ และการทำ AI'"
             )
 
-        # 3. ADD KEYWORD / เพิ่ม
-        if lower_text.startswith("เพิ่ม ") or lower_text.startswith("add ") or lower_text.startswith("/add "):
-            parts = raw_text.split(maxsplit=1)
-            if len(parts) < 2 or not parts[1].strip():
-                return "⚠️ กรุณาระบุคีย์เวิร์ดที่ต้องการเพิ่ม เช่น 'เพิ่ม flutter'"
-            
-            word_to_add = parts[1].strip()
-            success, msg = database.add_keyword(word_to_add)
-            if success:
-                active_count = len(database.get_active_keywords())
-                return f"✅ {msg}\n(จำนวนคีย์เวิร์ดที่เปิดใช้ปัจจุบัน: {active_count} คำ)"
-            return f"⚠️ {msg}"
+        # 3. KEYWORD TRANSITION GUIDE (แนะนำให้ใช้ Prompt AI แทนคีย์เวิร์ด)
+        if (
+            lower_text in ("keyword", "keywords", "/keyword", "/keywords", "คีย์เวิร์ด", "คำค้น", "เพิ่ม", "ลบ", "รีเซ็ต", "reset")
+            or lower_text.startswith("เพิ่ม ")
+            or lower_text.startswith("ลบ ")
+            or lower_text.startswith("add ")
+            or lower_text.startswith("del ")
+        ):
+            saved_prompt = database.get_user_prompt(source_id) if source_id else ""
+            prompt_line = f"\n📌 Prompt ปัจจุบันของคุณคือ: 【 {saved_prompt} 】" if saved_prompt else "\n📌 ขณะนี้คุณใช้ Prompt ค่าเริ่มต้น (ระบบส่งงานสาย Dev & AI ทั้งหมดให้อัตโนมัติ)"
+            return (
+                "🤖 ระบบเปลี่ยนมาใช้ **Prompt AI** เต็มรูปแบบแล้วครับ!\n"
+                f"คุณไม่จำเป็นต้องพิมพ์จัดการคีย์เวิร์ดทีละคำอีกต่อไป{prompt_line}\n\n"
+                "🌟 คุณสามารถพิมพ์คำสั่งบอก AI เป็นภาษาพูดได้เลย เช่น:\n"
+                "• 'ช่วยหางานด้านซอฟต์แวร์ และการทำ AI'\n"
+                "• 'หางานทำเว็บ React และ Node.js'\n"
+                "• 'อยากได้งาน Mobile app Flutter ครับ'\n"
+                "• 'อยากได้งานกราฟิก หรือตัดต่อวิดีโอ'\n\n"
+                "ระบบจะวิเคราะห์ความต้องการ และส่งแจ้งเตือนงานใหม่ให้ตรงกับ Prompt ของคุณทันทีครับ 🚀"
+            )
 
-        # 4. REMOVE KEYWORD / ลบ
-        if lower_text.startswith("ลบ ") or lower_text.startswith("del ") or lower_text.startswith("/del ") or lower_text.startswith("remove "):
-            parts = raw_text.split(maxsplit=1)
-            if len(parts) < 2 or not parts[1].strip():
-                return "⚠️ กรุณาระบุคีย์เวิร์ดที่ต้องการลบ เช่น 'ลบ php'"
-            
-            word_to_del = parts[1].strip()
-            success, msg = database.remove_keyword(word_to_del)
-            if success:
-                active_count = len(database.get_active_keywords())
-                return f"✅ {msg}\n(จำนวนคีย์เวิร์ดคงเหลือ: {active_count} คำ)"
-            return f"⚠️ {msg}"
-
-        # 5. RESET KEYWORDS / รีเซ็ต
-        if lower_text in ("reset", "/reset", "รีเซ็ต", "reset keywords"):
-            count = database.reset_default_keywords()
-            return f"🔄 รีเซ็ตคีย์เวิร์ดกลับเป็นค่าเริ่มต้นเรียบร้อยแล้ว ({count} คำ)"
-
-        # 6. SUBSCRIBE / ติดตาม
+        # 4. SUBSCRIBE / ติดตาม
         if lower_text in ("subscribe", "/subscribe", "ติดตาม", "เริ่ม", "start"):
             success, msg = database.add_subscriber(source_id, source_type)
             return (
@@ -183,7 +165,7 @@ class LineBotCommandHandler:
                 "🔔 เมื่องานเขียนโปรแกรม, เว็บไซต์, ซอฟต์แวร์ หรือ AI/ML ตรงกับความสนใจเข้ามาใหม่ ระบบจะส่งการ์ดแจ้งเตือนให้ทันทีครับ!"
             )
 
-        # 7. UNSUBSCRIBE / ยกเลิก
+        # 5. UNSUBSCRIBE / ยกเลิก
         if lower_text in ("unsubscribe", "/unsubscribe", "ยกเลิก", "หยุด", "stop"):
             success, msg = database.remove_subscriber(source_id)
             return (
@@ -191,21 +173,21 @@ class LineBotCommandHandler:
                 "💡 หากต้องการกลับมารับงานใหม่อีกครั้ง สามารถพิมพ์ 'ติดตาม' หรือพิมพ์คุยกับบอทได้ตลอดเวลาครับ"
             )
 
-        # 8. STATUS / สถานะ
+        # 6. STATUS / สถานะ
         if lower_text in ("status", "/status", "สถานะ", "info"):
             stats = database.get_stats()
             saved_prompt = database.get_user_prompt(source_id) if source_id else ""
-            prompt_line = f"• คำสั่งค้นหาล่าสุดของคุณ: {saved_prompt}\n" if saved_prompt else ""
+            prompt_line = f"• Prompt ค้นหาของคุณ: 【 {saved_prompt} 】\n" if saved_prompt else "• Prompt ค้นหาของคุณ: 【 ค่าเริ่มต้น (รับงาน Dev/AI ทุกประเภท) 】\n"
             return (
-                "📊 สถานะระบบ Job Alert Bot 🟢\n"
+                "📊 สถานะระบบ Job Alert Bot (Prompt AI) 🟢\n"
                 f"• ฐานข้อมูล: {stats.get('database')}\n"
-                f"• คีย์เวิร์ดที่เปิดใช้: {stats.get('keywords_count')} คำ\n"
                 f"• ผู้รับการแจ้งเตือน: {stats.get('subscribers_count')} รายการ\n"
+                f"• คำสั่งค้นหา (Prompt) ที่บันทึกในระบบ: {stats.get('active_prompts_count', 0)} รายการ\n"
                 f"{prompt_line}"
                 f"• แจ้งเตือนไปแล้วทั้งหมด: {stats.get('total_jobs')} งาน\n"
                 f"  - จาก Fastwork: {stats.get('fastwork_jobs')} งาน\n"
                 f"  - จาก Facebook: {stats.get('facebook_jobs')} งาน\n\n"
-                "ระบบพร้อมทำงานและสแกนประกาศงานแบบ Real-time ครับ!"
+                "ระบบพร้อมทำงานและสแกนประกาศงานด้วย Prompt AI แบบ Real-time ครับ!"
             )
 
         # 9. TEST / ทดสอบ
@@ -264,9 +246,6 @@ class LineBotCommandHandler:
                 database.save_user_prompt(source_id, raw_text)
                 database.add_subscriber(source_id, source_type)
 
-            # Activate extracted keywords in the database for background worker alerts
-            database.add_keywords_batch(analysis["search_keywords"])
-
             # Search active jobs right now (Fastwork + Facebook)
             matching_jobs = self._search_live_jobs(analysis["search_keywords"], analysis["core_terms"])
 
@@ -306,12 +285,10 @@ class LineBotCommandHandler:
                     "alt_text": f"📋 รายการงาน {target_display} ({len(top_jobs)} งาน)"
                 }
             else:
-                top_kws = ", ".join(analysis["search_keywords"][:6])
                 return (
                     f"🎯 บอทตรวจพบว่าคุณกำลังมองหา: 【 {target_display} 】\n"
-                    f"🔍 คำค้นหาหลัก: {core_display}\n"
-                    f"🏷️ คำค้นหาที่ระบบเปิดติดตาม: {top_kws}...\n\n"
-                    "✅ บันทึกเข้าสู่ระบบแจ้งเตือนอัตโนมัติของคุณเรียบร้อยแล้วครับ!\n"
+                    f"🔍 ขอบเขตสายงาน: {core_display}\n\n"
+                    "✅ บันทึก Prompt นี้เข้าสู่ระบบแจ้งเตือนอัตโนมัติของคุณเรียบร้อยแล้วครับ!\n"
                     "(ขณะนี้ยังไม่มีประกาศงานใหม่ที่ตรงกันในรอบล่าสุด)\n\n"
                     f"🔔 ทันทีที่มีผู้ว่าจ้างโพสต์ {target_display} บน Fastwork หรือ Facebook กลุ่มต่างๆ ระบบจะส่งการ์ดแจ้งเตือนพร้อมลิงก์ตรงให้คุณทันทีแบบ Real-time ครับ!\n\n"
                     "💡 คุณสามารถเปลี่ยนหรือใส่คำสั่งค้นหาใหม่ได้ตลอดเวลา เช่น:\n"

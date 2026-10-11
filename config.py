@@ -65,6 +65,9 @@ class Config:
     # Server Port for Railway
     PORT = int(os.getenv("PORT", "5000"))
 
+    # Default AI Job Search Prompt for subscribers without custom prompt
+    DEFAULT_PROMPT = os.getenv("DEFAULT_PROMPT", "งานเขียนโปรแกรม ซอฟต์แวร์ ทำเว็บ แอปพลิเคชัน และ AI").strip()
+
     # Default Keywords preset (expanded for maximum job coverage)
     DEFAULT_KEYWORDS = [
         # Web & Frontend/Backend
