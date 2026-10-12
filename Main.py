@@ -66,8 +66,8 @@ def health_check():
     return jsonify({
         "status": "online",
         "service": "Job Alert Bot (Fastwork & Facebook)",
-        "version": "1.0.9",
-        "build_version": "prompt-ai-7day-dedup-v1",
+        "version": "1.1.0",
+        "build_version": "prompt-ai-help-updated",
         "worker_running": worker.is_running,
         "poll_interval_seconds": Config.POLL_INTERVAL_SECONDS,
         "facebook_groups_count": len(Config.FB_GROUP_IDS),
@@ -118,9 +118,9 @@ if webhook_handler:
             welcome_msg = (
                 "👋 สวัสดีครับ! ยินดีต้อนรับสู่ Job Alert Bot 🤖\n"
                 "ระบบแจ้งเตือนงานด้าน Programming, Web, AI / ML และ Software\n"
-                "จาก Fastwork และ Facebook Groups (150+ งานล่าสุด)\n\n"
+                "จาก Fastwork และ Facebook Groups (200+ งานล่าสุดในรอบ 1 สัปดาห์)\n\n"
                 "✅ ระบบได้เปิดรับการแจ้งเตือนงานให้คุณอัตโนมัติเรียบร้อยแล้วครับ! 🎉\n"
-                "(คุณจะได้รับการแจ้งเตือนงานใหม่ทันทีโดยไม่ต้องพิมพ์คำสั่งใดๆ เพิ่มเติม)\n\n"
+                "(คุณจะได้รับการแจ้งเตือนงานทันทีโดยไม่ต้องพิมพ์คำสั่งใดๆ เพิ่มเติม)\n\n"
                 + get_full_help_text()
             )
             command_handler.reply(event.reply_token, welcome_msg, source_id=source_id)
