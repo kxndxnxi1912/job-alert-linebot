@@ -19,10 +19,10 @@ class FastworkScraper:
         "Referer": "https://jobboard.fastwork.co/",
     }
 
-    def fetch_jobs(self, max_pages: int = 3) -> list[dict]:
+    def fetch_jobs(self, max_pages: int = 4) -> list[dict]:
         """
         Fetch latest active jobs from Fastwork across multiple pages.
-        Filters out expired or closed jobs and highlights jobs posted today.
+        Filters out expired or closed jobs and ensures jobs are within 1 week (7 days).
         """
         jobs = []
         now = datetime.now(timezone.utc)
@@ -61,7 +61,7 @@ class FastworkScraper:
                             except Exception:
                                 pass
 
-                        # 3. Check recency & today status
+                        # 3. Filter: Only jobs within 1 week (7 days)
                         inserted_at_str = item.get("inserted_at")
                         is_today = False
                         posted_label = "ล่าสุด"
@@ -69,6 +69,10 @@ class FastworkScraper:
                             try:
                                 ins_dt = datetime.fromisoformat(inserted_at_str.replace("Z", "+00:00"))
                                 hours_ago = (now - ins_dt).total_seconds() / 3600
+                                days_ago = hours_ago / 24
+                                if days_ago > 7:
+                                    continue  # Exclude jobs older than 1 week (7 days)
+
                                 if ins_dt.date() == now.date():
                                     is_today = True
                                     posted_label = "🟢 วันนี้"
@@ -77,6 +81,8 @@ class FastworkScraper:
                                     posted_label = "🟢 ภายใน 24 ชม."
                                 elif hours_ago <= 48:
                                     posted_label = "เมื่อวาน"
+                                else:
+                                    posted_label = f"{int(days_ago)} วันที่แล้ว"
                             except Exception:
                                 pass
                         

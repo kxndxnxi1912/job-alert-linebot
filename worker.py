@@ -116,36 +116,47 @@ class JobMonitorWorker:
         # 1. Process Fastwork
         if Config.FASTWORK_ENABLED:
             try:
-                fw_jobs = self.fastwork_scraper.fetch_jobs()
+                fw_jobs = self.fastwork_scraper.fetch_jobs(max_pages=4)
                 stats["fastwork_fetched"] = len(fw_jobs)
                 for job in fw_jobs:
                     post_id = job.get("post_id")
-                    if not post_id or database.is_job_logged(post_id):
+                    if not post_id:
                         continue
 
-                    # Check match against all subscribers' prompts
-                    target_subs, matched_terms = self._evaluate_job_for_subscribers(
+                    # Evaluate match against all subscribers' prompts
+                    matched_subs, matched_terms = self._evaluate_job_for_subscribers(
                         job, subscribers, user_prompts, default_prompt
                     )
-                    if target_subs:
-                        stats["fastwork_matched"] += 1
-                        logger.info(f"[Worker] Fastwork Prompt AI match found: '{job.get('title')}' for {len(target_subs)} subscribers | Terms: {matched_terms}")
-                        
-                        # Send alert to matching subscribers only
-                        self.notifier.send_job_alert(job, matched_terms, target_ids=target_subs)
-                        stats["fastwork_alerted"] += 1
+                    if not matched_subs:
+                        continue
 
-                        # Log to database
-                        database.log_job(
-                            post_id=post_id,
-                            source=job.get("source", "Fastwork"),
-                            group_name=job.get("group_name"),
-                            title=job.get("title"),
-                            content=job.get("content"),
-                            budget=job.get("budget"),
-                            url=job.get("url"),
-                            matched_keywords=", ".join(matched_terms)
-                        )
+                    # Filter out subscribers who have ALREADY received this job alert (DEDUPLICATION)
+                    pending_subs = database.get_subscribers_pending_for_job(matched_subs, post_id)
+                    if not pending_subs:
+                        continue
+
+                    stats["fastwork_matched"] += 1
+                    logger.info(f"[Worker] Fastwork Prompt AI match found: '{job.get('title')}' for {len(pending_subs)} subscribers | Terms: {matched_terms}")
+                    
+                    # Send alert to pending subscribers only
+                    sent_count = self.notifier.send_job_alert(job, matched_terms, target_ids=pending_subs)
+                    if sent_count > 0:
+                        stats["fastwork_alerted"] += sent_count
+                        for sub_id in pending_subs:
+                            database.record_subscriber_received_job(sub_id, post_id)
+                        time.sleep(0.3)
+
+                    # Global log in job_logs
+                    database.log_job(
+                        post_id=post_id,
+                        source=job.get("source", "Fastwork"),
+                        group_name=job.get("group_name"),
+                        title=job.get("title"),
+                        content=job.get("content"),
+                        budget=job.get("budget"),
+                        url=job.get("url"),
+                        matched_keywords=", ".join(matched_terms)
+                    )
             except Exception as e:
                 logger.error(f"[Worker] Error checking Fastwork: {e}")
 
@@ -156,32 +167,43 @@ class JobMonitorWorker:
                 stats["facebook_fetched"] = len(fb_jobs)
                 for post in fb_jobs:
                     post_id = post.get("post_id")
-                    if not post_id or database.is_job_logged(post_id):
+                    if not post_id:
                         continue
 
-                    # Check match against all subscribers' prompts
-                    target_subs, matched_terms = self._evaluate_job_for_subscribers(
+                    # Evaluate match against all subscribers' prompts
+                    matched_subs, matched_terms = self._evaluate_job_for_subscribers(
                         post, subscribers, user_prompts, default_prompt
                     )
-                    if target_subs:
-                        stats["facebook_matched"] += 1
-                        logger.info(f"[Worker] Facebook Prompt AI match found: '{post.get('title')}' from '{post.get('group_name')}' for {len(target_subs)} subscribers | Terms: {matched_terms}")
+                    if not matched_subs:
+                        continue
 
-                        # Send alert to matching subscribers only
-                        self.notifier.send_job_alert(post, matched_terms, target_ids=target_subs)
-                        stats["facebook_alerted"] += 1
+                    # Filter out subscribers who have ALREADY received this job alert (DEDUPLICATION)
+                    pending_subs = database.get_subscribers_pending_for_job(matched_subs, post_id)
+                    if not pending_subs:
+                        continue
 
-                        # Log to database
-                        database.log_job(
-                            post_id=post_id,
-                            source=post.get("source", "Facebook"),
-                            group_name=post.get("group_name"),
-                            title=post.get("title"),
-                            content=post.get("content"),
-                            budget=post.get("budget"),
-                            url=post.get("url"),
-                            matched_keywords=", ".join(matched_terms)
-                        )
+                    stats["facebook_matched"] += 1
+                    logger.info(f"[Worker] Facebook Prompt AI match found: '{post.get('title')}' from '{post.get('group_name')}' for {len(pending_subs)} subscribers | Terms: {matched_terms}")
+
+                    # Send alert to pending subscribers only
+                    sent_count = self.notifier.send_job_alert(post, matched_terms, target_ids=pending_subs)
+                    if sent_count > 0:
+                        stats["facebook_alerted"] += sent_count
+                        for sub_id in pending_subs:
+                            database.record_subscriber_received_job(sub_id, post_id)
+                        time.sleep(0.3)
+
+                    # Global log in job_logs
+                    database.log_job(
+                        post_id=post_id,
+                        source=post.get("source", "Facebook"),
+                        group_name=post.get("group_name"),
+                        title=post.get("title"),
+                        content=post.get("content"),
+                        budget=post.get("budget"),
+                        url=post.get("url"),
+                        matched_keywords=", ".join(matched_terms)
+                    )
             except Exception as e:
                 logger.error(f"[Worker] Error checking Facebook: {e}")
 

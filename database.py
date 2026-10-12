@@ -7,7 +7,8 @@ from sqlalchemy import (
     Text,
     Boolean,
     DateTime,
-    func
+    func,
+    UniqueConstraint
 )
 from sqlalchemy.orm import declarative_base, sessionmaker, scoped_session
 from config import Config
@@ -52,6 +53,18 @@ class JobLog(Base):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "sent_at": self.sent_at.isoformat() if self.sent_at else None,
         }
+
+class SubscriberAlert(Base):
+    """Tracks which job alerts have been sent to which subscriber to prevent duplicate notifications."""
+    __tablename__ = "subscriber_alerts"
+    id = Column(Integer, primary_key=True)
+    target_id = Column(String(100), index=True, nullable=False)
+    post_id = Column(String(255), index=True, nullable=False)
+    sent_at = Column(DateTime, default=datetime.datetime.utcnow)
+
+    __table_args__ = (
+        UniqueConstraint("target_id", "post_id", name="uq_subscriber_post"),
+    )
 
 class Subscriber(Base):
     __tablename__ = "subscribers"
@@ -236,6 +249,56 @@ def log_job(post_id: str, source: str, group_name: str, title: str, content: str
         session.rollback()
         print(f"[Database] Error logging job {post_id}: {e}")
         return False
+    finally:
+        session.close()
+
+def has_subscriber_received_job(target_id: str, post_id: str) -> bool:
+    """Check if a specific subscriber has already been sent an alert for this job."""
+    if not target_id or not post_id:
+        return False
+    session = SessionLocal()
+    try:
+        return session.query(SubscriberAlert).filter_by(target_id=target_id, post_id=post_id).first() is not None
+    except Exception as e:
+        print(f"[Database] Error checking subscriber alert: {e}")
+        return False
+    finally:
+        session.close()
+
+def record_subscriber_received_job(target_id: str, post_id: str) -> bool:
+    """Record that a subscriber has been sent an alert for this job to prevent duplicate notifications."""
+    if not target_id or not post_id:
+        return False
+    session = SessionLocal()
+    try:
+        existing = session.query(SubscriberAlert).filter_by(target_id=target_id, post_id=post_id).first()
+        if not existing:
+            session.add(SubscriberAlert(target_id=target_id, post_id=post_id))
+            session.commit()
+        return True
+    except Exception as e:
+        session.rollback()
+        return False
+    finally:
+        session.close()
+
+def get_subscribers_pending_for_job(target_ids: list[str], post_id: str) -> list[str]:
+    """Filter target_ids to only those who have NOT received this job alert yet."""
+    if not target_ids or not post_id:
+        return []
+    session = SessionLocal()
+    try:
+        already_received = {
+            row.target_id
+            for row in session.query(SubscriberAlert.target_id).filter(
+                SubscriberAlert.target_id.in_(target_ids),
+                SubscriberAlert.post_id == post_id
+            ).all()
+        }
+        return [tid for tid in target_ids if tid not in already_received]
+    except Exception as e:
+        print(f"[Database] Error in get_subscribers_pending_for_job: {e}")
+        return [tid for tid in target_ids if not has_subscriber_received_job(tid, post_id)]
     finally:
         session.close()
 

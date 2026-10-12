@@ -66,8 +66,8 @@ def health_check():
     return jsonify({
         "status": "online",
         "service": "Job Alert Bot (Fastwork & Facebook)",
-        "version": "1.0.8",
-        "build_version": "prompt-ai-refined-v2",
+        "version": "1.0.9",
+        "build_version": "prompt-ai-7day-dedup-v1",
         "worker_running": worker.is_running,
         "poll_interval_seconds": Config.POLL_INTERVAL_SECONDS,
         "facebook_groups_count": len(Config.FB_GROUP_IDS),
@@ -328,22 +328,29 @@ def ingest_facebook_post():
     )
 
     if target_subs:
-        notifier.send_job_alert(post_item, matched_terms, target_ids=target_subs)
-        database.log_job(
-            post_id=full_id,
-            source="Facebook",
-            group_name=post_item["group_name"],
-            title=post_item["title"],
-            content=post_item["content"],
-            budget=post_item["budget"],
-            url=post_item["url"],
-            matched_keywords=", ".join(matched_terms)
-        )
-        return jsonify({
-            "status": "matched_and_alerted",
-            "matched_terms": matched_terms,
-            "alerted_subscribers_count": len(target_subs)
-        }), 200
+        pending_subs = database.get_subscribers_pending_for_job(target_subs, full_id)
+        if pending_subs:
+            notifier.send_job_alert(post_item, matched_terms, target_ids=pending_subs)
+            for sub_id in pending_subs:
+                database.record_subscriber_received_job(sub_id, full_id)
+
+            database.log_job(
+                post_id=full_id,
+                source="Facebook",
+                group_name=post_item["group_name"],
+                title=post_item["title"],
+                content=post_item["content"],
+                budget=post_item["budget"],
+                url=post_item["url"],
+                matched_keywords=", ".join(matched_terms)
+            )
+            return jsonify({
+                "status": "matched_and_alerted",
+                "matched_terms": matched_terms,
+                "alerted_subscribers_count": len(pending_subs)
+            }), 200
+        else:
+            return jsonify({"status": "skipped", "reason": "already_received_by_all_matched_subscribers"}), 200
 
     return jsonify({"status": "skipped", "reason": "no_prompt_match"}), 200
 

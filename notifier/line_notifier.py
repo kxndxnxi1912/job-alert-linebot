@@ -199,7 +199,7 @@ class LineNotifier:
             "contents": [
                 {
                     "type": "text",
-                    "text": f"🏷️ คีย์เวิร์ด: {keywords_str}",
+                    "text": f"🎯 ตรงกับ Prompt: {keywords_str}",
                     "size": "xs",
                     "color": "#6B7280",
                     "wrap": True
@@ -395,7 +395,7 @@ class LineNotifier:
             f"📌 จาก: {group}\n"
             f"📝 หัวข้อ: {title}\n"
             f"{budget_line}"
-            f"🏷️ ตรงกับคีย์เวิร์ด: {kws}\n\n"
+            f"🎯 ตรงกับ Prompt: {kws}\n\n"
             f"📄 รายละเอียดสรุป:\n{summary}\n\n"
             f"🔗 ลิงก์ตรงไปยังประกาศงาน:\n👉 {url}"
         )
