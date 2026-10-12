@@ -66,8 +66,8 @@ def health_check():
     return jsonify({
         "status": "online",
         "service": "Job Alert Bot (Fastwork & Facebook)",
-        "version": "1.0.7",
-        "build_version": "prompt-ai-only-v1",
+        "version": "1.0.8",
+        "build_version": "prompt-ai-refined-v2",
         "worker_running": worker.is_running,
         "poll_interval_seconds": Config.POLL_INTERVAL_SECONDS,
         "facebook_groups_count": len(Config.FB_GROUP_IDS),

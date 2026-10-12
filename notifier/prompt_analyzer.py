@@ -19,11 +19,13 @@ class PromptAnalyzer:
             "name": "ซอฟต์แวร์ / Software Engineering",
             "triggers": [
                 "ซอฟต์แวร์", "software", "โปรแกรม", "โปรแกรมเมอร์", "เขียนโปรแกรม",
-                "ระบบ", "system", "developer", "coding", "develop"
+                "ระบบ", "system", "developer", "coding", "develop",
+                "โค้ด", "เขียนโค้ด", "code", "coder", "programmer", "ไอที", "it",
+                "พัฒนาระบบ", "นักพัฒนา"
             ],
             "expanded": [
-                "ซอฟต์แวร์", "software", "เขียนโปรแกรม", "โปรแกรมเมอร์", "โปรแกรม",
-                "พัฒนาระบบ", "ระบบหลังบ้าน", "ระบบเว็บ", "developer", "coding"
+                "เขียนโค้ด", "เขียนโปรแกรม", "โปรแกรมเมอร์", "developer",
+                "coding", "software", "ซอฟต์แวร์", "พัฒนาระบบ", "นักพัฒนา", "programmer"
             ]
         },
         "ai": {
@@ -94,7 +96,7 @@ class PromptAnalyzer:
         r'อยากหางานด้าน', r'อยากหางาน', r'อยากได้งานด้าน', r'อยากได้งาน', r'ต้องการงานด้าน', r'ต้องการงาน',
         r'สนใจงานด้าน', r'สนใจงาน', r'มองหางานด้าน', r'มองหางาน', r'หางานด้าน', r'หางาน',
         r'มีงานด้าน', r'มีงาน', r'ค้นหางาน', r'ค้นหา', r'หาฟรีแลนซ์', r'หาโปรเจกต์', r'รับงาน',
-        r'อยากทำ', r'ทำโปรเจกต์', r'งานด้าน', r'งานสาย', r'สายงาน'
+        r'อยากทำ', r'ทำโปรเจกต์', r'งานด้าน', r'งานสาย', r'สายงาน', r'งาน'
     ]
 
     # Trailing conversational fluff to remove
@@ -113,7 +115,8 @@ class PromptAnalyzer:
         "python", "javascript", "typescript", "golang", "go", "java", "c#", "c++",
         "rust", "php", "react", "vue", "angular", "flutter", "nextjs", "nodejs",
         "node", "wordpress", "docker", "figma", "ui", "ux", "api", "bot", "ai",
-        "fastapi", "django", "laravel", "tailwind", "sql", "aws", "linux", "แก้บั๊ก"
+        "fastapi", "django", "laravel", "tailwind", "sql", "aws", "linux", "แก้บั๊ก",
+        "เขียนโค้ด", "โค้ด", "เขียนโปรแกรม", "โปรแกรมเมอร์"
     ]
 
     @classmethod

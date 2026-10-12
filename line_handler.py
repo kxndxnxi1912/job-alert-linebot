@@ -128,8 +128,12 @@ class LineBotCommandHandler:
                 f"💡 บอทจะคอยสแกนทุกกลุ่มเพื่อตรวจจับโพสต์ที่ตรงกับ Prompt ค้นหาของคุณ"
             )
 
-        # 2. CLEAR PROMPT / ล้างคำสั่ง
-        if lower_text in ("ล้างคำสั่ง", "ล้างprompt", "clear", "/clear", "reset prompt", "รีเซ็ตคำสั่ง", "ล้าง"):
+        # 2. CLEAR PROMPT / ล้างคำสั่ง / รีเซ็ต
+        clear_triggers = (
+            "ล้างคำสั่ง", "ล้างคำสั้ง", "ล้างprompt", "clear", "/clear", "reset prompt",
+            "รีเซ็ตคำสั่ง", "รีเซ็ต", "reset", "ล้าง", "ล้างสถานะ", "ล้างข้อมูล", "ลบคำสั่ง", "ยกเลิกคำสั่ง"
+        )
+        if lower_text in clear_triggers or lower_text.startswith("ล้าง") or lower_text.startswith("reset") or lower_text.startswith("รีเซ็ต"):
             database.clear_user_prompt(source_id)
             return (
                 "🔄 ล้างคำสั่งค้นหาของคุณเรียบร้อยแล้วครับ!\n"
@@ -139,7 +143,7 @@ class LineBotCommandHandler:
 
         # 3. KEYWORD TRANSITION GUIDE (แนะนำให้ใช้ Prompt AI แทนคีย์เวิร์ด)
         if (
-            lower_text in ("keyword", "keywords", "/keyword", "/keywords", "คีย์เวิร์ด", "คำค้น", "เพิ่ม", "ลบ", "รีเซ็ต", "reset")
+            lower_text in ("keyword", "keywords", "/keyword", "/keywords", "คีย์เวิร์ด", "คำค้น", "เพิ่ม", "ลบ")
             or lower_text.startswith("เพิ่ม ")
             or lower_text.startswith("ลบ ")
             or lower_text.startswith("add ")
