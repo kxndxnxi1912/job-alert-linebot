@@ -187,16 +187,30 @@ class LineBotCommandHandler:
             stats = database.get_stats()
             saved_prompt = database.get_user_prompt(source_id) if source_id else ""
             prompt_line = f"• Prompt ค้นหาของคุณ: 【 {saved_prompt} 】\n" if saved_prompt else "• Prompt ค้นหาของคุณ: 【 ค่าเริ่มต้น (รับงาน Dev/AI ทุกประเภท) 】\n"
+            
+            quota_info = self.notifier.get_message_quota_info()
+            quota_line = ""
+            quota_note = ""
+            if quota_info.get("configured"):
+                usage = quota_info.get("usage", 0)
+                limit = quota_info.get("limit", 0)
+                if quota_info.get("is_exhausted"):
+                    quota_line = f"• โควต้า LINE Push เดือนนี้: ⚠️ {usage} / {limit} ข้อความ (เต็มแล้ว)\n"
+                    quota_note = "\n⚠️ หมายเหตุ: ขณะนี้โควต้า Push ข้อความฟรีของ LINE ในเดือนนี้เต็มแล้ว (300/300 ข้อความ) ทำให้การแจ้งเตือนงานอัตโนมัติเบื้องหลังหยุดชั่วคราว (รอรีเซ็ตทุกวันที่ 1 ของเดือนใหม่) แต่คุณยังพิมพ์คำสั่งค้นหางานสดได้ตามปกติครับ!"
+                else:
+                    quota_line = f"• โควต้า LINE Push เดือนนี้: {usage} / {limit} ข้อความ (คงเหลือ {quota_info.get('remaining')} ข้อความ)\n"
+            
             return (
                 "📊 สถานะระบบ Job Alert Bot (Prompt AI) 🟢\n"
                 f"• ฐานข้อมูล: {stats.get('database')}\n"
                 f"• ผู้รับการแจ้งเตือน: {stats.get('subscribers_count')} รายการ\n"
                 f"• คำสั่งค้นหา (Prompt) ที่บันทึกในระบบ: {stats.get('active_prompts_count', 0)} รายการ\n"
                 f"{prompt_line}"
+                f"{quota_line}"
                 f"• แจ้งเตือนไปแล้วทั้งหมด: {stats.get('total_jobs')} งาน\n"
                 f"  - จาก Fastwork: {stats.get('fastwork_jobs')} งาน\n"
-                f"  - จาก Facebook: {stats.get('facebook_jobs')} งาน\n\n"
-                "ระบบพร้อมทำงานและสแกนประกาศงานด้วย Prompt AI แบบ Real-time ครับ!"
+                f"  - จาก Facebook: {stats.get('facebook_jobs')} งาน\n"
+                f"{quota_note}"
             )
 
         # 9. TEST / ทดสอบ
@@ -229,7 +243,21 @@ class LineBotCommandHandler:
                 target_list.append(source_id)
 
             sent_count = self.notifier.send_job_alert(sample_job, ["web", "ai", "ทดสอบ"], target_ids=target_list)
-            return f"🧪 ส่งตัวอย่างแจ้งเตือนงานไปยังผู้ติดตามทุกคนเรียบร้อยแล้วครับ! (ส่งให้ {sent_count} คน ทุกคนที่แอดไลน์จะได้รับการ์ดพร้อมกัน)"
+            if sent_count > 0:
+                return f"🧪 ส่งตัวอย่างแจ้งเตือนงานไปยังผู้ติดตามทุกคนเรียบร้อยแล้วครับ! (ส่งให้ {sent_count} คน ทุกคนที่แอดไลน์จะได้รับการ์ดพร้อมกัน)"
+            else:
+                quota_info = self.notifier.get_message_quota_info()
+                if quota_info.get("is_exhausted"):
+                    return (
+                        "⚠️ ส่งการ์ดทดสอบไม่สำเร็จ เนื่องจากโควต้าข้อความ Push ฟรีของ LINE ในเดือนนี้เต็มแล้วครับ (300/300 ข้อความ)\n\n"
+                        "📌 สาเหตุที่บอทไม่แจ้งเตือนงานอัตโนมัติ:\n"
+                        "• LINE Official Account แพ็กเกจฟรี จำกัดการ Push ข้อความแจ้งเตือนไว้ที่ 300 ข้อความ/เดือน\n"
+                        "• ปัจจุบันในเดือนนี้ถูกใช้งานครบ 300 ข้อความแล้ว LINE จึงปฏิเสธการ Push Message ใหม่ทั้งหมด (Error 429)\n\n"
+                        "💡 ทางออก:\n"
+                        "1. โควต้าจะรีเซ็ตอัตโนมัติในวันที่ 1 ของเดือนถัดไป (ฟรี)\n"
+                        "2. ในระหว่างนี้ คุณสามารถพิมพ์คำสั่งค้นหางานสด (เช่น 'ช่วยหางาน AI' หรือ 'งานเขียนโปรแกรม') ได้ตลอดเวลา บอทจะตอบกลับรายการงาน 200+ งานให้ทันทีโดยไม่เสียโควต้าครับ!"
+                    )
+                return f"⚠️ ไม่สามารถส่งการ์ดแจ้งเตือนได้ (sent_count = 0) กรุณาตรวจสอบสถานะการเชื่อมต่อ LINE"
 
         # 10. GREETINGS / คำทักทาย
         if PromptAnalyzer.is_greeting(raw_text):

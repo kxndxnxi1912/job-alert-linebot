@@ -71,6 +71,39 @@ class LineNotifier:
         """Check if LINE channel access token is configured."""
         return bool(self.access_token and self.messaging_api)
 
+    def get_message_quota_info(self) -> dict:
+        """Fetch current monthly push message quota and consumption from LINE API."""
+        if not self.access_token:
+            return {"configured": False, "limit": 0, "usage": 0, "remaining": 0, "is_exhausted": False}
+        try:
+            import requests
+            headers = {"Authorization": f"Bearer {self.access_token}"}
+            q_res = requests.get("https://api.line.me/v2/bot/message/quota", headers=headers, timeout=5)
+            u_res = requests.get("https://api.line.me/v2/bot/message/quota/consumption", headers=headers, timeout=5)
+            
+            limit = 0
+            if q_res.status_code == 200:
+                q_data = q_res.json()
+                limit = q_data.get("value", 0)
+            
+            usage = 0
+            if u_res.status_code == 200:
+                u_data = u_res.json()
+                usage = u_data.get("totalUsage", 0)
+                
+            remaining = max(0, limit - usage)
+            is_exhausted = (limit > 0 and usage >= limit)
+            return {
+                "configured": True,
+                "limit": limit,
+                "usage": usage,
+                "remaining": remaining,
+                "is_exhausted": is_exhausted
+            }
+        except Exception as e:
+            logger.warning(f"[LineNotifier] Error fetching quota info: {e}")
+            return {"configured": True, "error": str(e), "limit": 0, "usage": 0, "remaining": 0, "is_exhausted": False}
+
     def create_flex_message(self, job: dict, matched_keywords: list[str]) -> dict:
         """Create a LINE Flex Message bubble JSON payload."""
         source = job.get("source", "Job Alert")
@@ -440,6 +473,10 @@ class LineNotifier:
                 self.messaging_api.push_message(req)
                 success_count += 1
             except Exception as e:
+                err_str = str(e)
+                if "429" in err_str or "monthly limit" in err_str:
+                    logger.error(f"[LineNotifier] Monthly push quota reached! LINE returned 429: {err_str}")
+                    break
                 logger.error(f"[LineNotifier] Failed to send message to {target_id}: {e}")
 
         logger.info(f"[LineNotifier] Alert sent to {success_count}/{len(target_ids)} targets.")

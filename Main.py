@@ -63,15 +63,17 @@ worker.start()
 def health_check():
     """Health check endpoint for Railway and status monitoring."""
     stats = database.get_stats()
+    quota_info = notifier.get_message_quota_info() if hasattr(notifier, "get_message_quota_info") else {}
     return jsonify({
         "status": "online",
         "service": "Job Alert Bot (Fastwork & Facebook)",
         "version": "1.1.0",
-        "build_version": "prompt-ai-help-updated",
+        "build_version": "prompt-ai-quota-aware",
         "worker_running": worker.is_running,
         "poll_interval_seconds": Config.POLL_INTERVAL_SECONDS,
         "facebook_groups_count": len(Config.FB_GROUP_IDS),
         "line_configured": notifier.is_configured(),
+        "line_quota": quota_info,
         "stats": stats
     }), 200
 
@@ -244,6 +246,7 @@ def get_debug_info():
         "line_secret_configured": bool(Config.LINE_CHANNEL_SECRET),
         "line_token_configured": bool(Config.LINE_CHANNEL_ACCESS_TOKEN),
         "webhook_handler_active": webhook_handler is not None,
+        "line_quota": notifier.get_message_quota_info() if hasattr(notifier, "get_message_quota_info") else {},
         "recent_events": RECENT_EVENTS,
         "subscribers": database.get_subscribers(),
         "stats": database.get_stats()
